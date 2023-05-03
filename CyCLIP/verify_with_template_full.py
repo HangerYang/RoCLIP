@@ -1,7 +1,7 @@
 from pkgs.openai.clip import load as load_model
 import torch
 import numpy as np
-from CyCLIP.datasets_categories import almighty
+from datasets_categories import almighty
 from sklearn.metrics.pairwise import cosine_similarity
 import argparse
 import pandas as pd
