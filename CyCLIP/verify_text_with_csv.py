@@ -31,10 +31,6 @@ for epoch in range(1,2):
     model, processor = load_model(name = 'RN50', pretrained = False)
     checkpoint = torch.load(pretrained_path, map_location = device)
     state_dict = checkpoint["state_dict"]
-    # state_dict_rename = {}
-    # for key, value in state_dict.items():
-    #     state_dict_rename[key[7:]] = value
-    # state_dict = state_dict_rename
     model.load_state_dict(state_dict)
     captions = processor.process_text(df[caption_key].tolist())
     model.eval()

@@ -52,5 +52,7 @@ def parse_args():
     parser.add_argument("--cross_aug", action = "store_true", default = False, help = "augmentation")
     parser.add_argument("--break_epoch", type = int, default = 5, help = "frequency of using NN loss")
     parser.add_argument("--keep_learning", action = "store_true", default = False, help = "Only use NN loss after certain epoch (predefined)")
+    parser.add_argument("--alpha", type = float, default = 0, help = "lambda 1")
+    parser.add_argument("--alpha_nn", type = float, default = 0, help = "lambda 2")
     options = parser.parse_args()
     return options

@@ -90,6 +90,9 @@ with torch.no_grad():
     success1 = 0
     success3 = 0
     success5 = 0
+    target_sims = []
+    target_classes = []
+    top_threes = []
     for target_class in evaluation["target"].unique():
         idx = classes.index(target_class)
         # idx = np.where(classes == target_class)[0][0]
@@ -97,13 +100,16 @@ with torch.no_grad():
         for i in range(len(target_poisoned_img)):
             original_img = "/home/hyang/deadclip/" + target_poisoned_img[i]
             res1, res3, res5, target_sim, top_three= output_sim(original_img, text_features, idx)
+            target_classes.append(target_class)
+            target_sims.append(target_sim)
+            top_threes.append(top_three)
             success1 += res1
             success3 += res3
             success5 += res5
     success1 = success1 / len(poisoned_imgs)
     success3 = success3 / len(poisoned_imgs)
     success5 = success5 / len(poisoned_imgs)
-np.savez("template/{}_{}_{}_{}".format(options.model_name, options.dataset, options.epoch, options.identifier), success1, success3, success5, target_sim, top_three)
+np.savez("template/{}_{}_{}_{}".format(options.model_name, options.dataset, options.epoch, options.identifier), success1, success3, success5, target_classes, target_sims, top_threes)
 
 
 

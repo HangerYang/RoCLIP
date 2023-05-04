@@ -13,28 +13,6 @@ def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch):
     image_memory_bank  = memory_bank[0]
     text_memory_bank  = memory_bank[1]
    
-    # if(options.inmodal):
-    #     image_embeds, augmented_image_embeds = outputs.image_embeds[:len(outputs.image_embeds) // 2], outputs.image_embeds[len(outputs.image_embeds) // 2:]
-    #     text_embeds, augmented_text_embeds = outputs.text_embeds[:len(outputs.text_embeds) // 2], outputs.text_embeds[len(outputs.text_embeds) // 2:]
-    #     if options.memory_bank:
-    #         image_embeds_nn = memory_bank(image_embeds, update=True)
-    #         text_embeds_nn = memory_bank(text_embeds, update=True)
-
-    # if(options.cross_aug):
-    #     image_embeds, augmented_image_embeds = outputs.image_embeds[:len(outputs.image_embeds) // 2], outputs.image_embeds[len(outputs.image_embeds) // 2:]
-    #     text_embeds, augmented_text_embeds = outputs.text_embeds[:len(outputs.text_embeds) // 2], outputs.text_embeds[len(outputs.text_embeds) // 2:]
-    #     if options.memory_bank:
-    #         image_embeds_nn = memory_bank(augmented_image_embeds, update=True)
-    #         text_embeds_nn = memory_bank(augmented_text_embeds, update=True)
-
-
-    # else:
-    #     image_embeds = outputs.image_embeds
-    #     text_embeds = outputs.text_embeds
-    #     if options.memory_bank:
-    #         image_embeds_nn = memory_bank(image_embeds, update=True)
-    #         text_embeds_nn = memory_bank(text_embeds, update=True)
-            
     if(options.distributed):
         if(options.inmodal):
             gathered_image_embeds = [torch.zeros_like(image_embeds) for _ in range(options.num_devices)]
@@ -60,25 +38,16 @@ def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch):
         
             image_embeds = torch.cat(gathered_image_embeds[:options.rank] + [image_embeds] + gathered_image_embeds[options.rank + 1:])
             text_embeds  = torch.cat(gathered_text_embeds[:options.rank]+ [text_embeds] + gathered_text_embeds[options.rank + 1:])
-        
+    
+    
     if options.memory_bank and options.few_epoch and current_epoch % options.break_epoch == 0:
+        logits_text_per_image = umodel.logit_scale.exp() * image_embeds @ text_embeds.t()
+        logits_image_per_text = logits_text_per_image.t()
         image_embeds_nn = image_memory_bank(image_embeds, update=True)
         text_embeds_nn = text_memory_bank(image_embeds, update=False)
         text_memory_bank(text_embeds, update=True)
-        logits_text_per_image = umodel.logit_scale.exp() * image_embeds_nn @ text_embeds.t()
-        logits_image_per_text = umodel.logit_scale.exp() * text_embeds_nn @ image_embeds.t()
-    # elif options.memory_bank and not options.few_epoch:
-    #     image_embeds_nn = image_memory_bank(image_embeds, update=True)
-    #     text_embeds_nn = text_memory_bank(image_embeds, update=False)
-    #     text_memory_bank(text_embeds, update=True)
-    #     logits_text_per_image = umodel.logit_scale.exp() * image_embeds_nn @ text_embeds.t()
-    #     logits_image_per_text = umodel.logit_scale.exp() * text_embeds_nn @ image_embeds.t()
-    elif options.memory_bank and options.keep_learning and current_epoch > 15:
-        image_embeds_nn = image_memory_bank(image_embeds, update=True)
-        text_embeds_nn = text_memory_bank(image_embeds, update=False)
-        text_memory_bank(text_embeds, update=True)
-        logits_text_per_image = umodel.logit_scale.exp() * image_embeds_nn @ text_embeds.t()
-        logits_image_per_text = umodel.logit_scale.exp() * text_embeds_nn @ image_embeds.t()
+        logits_text_per_image_nn = umodel.logit_scale.exp() * image_embeds_nn @ text_embeds.t()
+        logits_image_per_text_nn = umodel.logit_scale.exp() * text_embeds_nn @ image_embeds.t() 
     else:
         logits_text_per_image = umodel.logit_scale.exp() * image_embeds @ text_embeds.t()
         logits_image_per_text = logits_text_per_image.t()
@@ -87,28 +56,67 @@ def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch):
     target = torch.arange(batch_size).long().to(options.device, non_blocking = True)
     
     contrastive_loss = torch.tensor(0).to(options.device)
-    crossmodal_contrastive_loss = (criterion(logits_text_per_image, target) + criterion(logits_image_per_text, target)) / 2
-    contrastive_loss = crossmodal_contrastive_loss
-
-    # inmodal_cyclic_loss = torch.tensor(0).to(options.device)
-    # if(options.cylambda1 > 0):
-    #     logits_image_per_image = umodel.logit_scale.exp() * image_embeds @ image_embeds.t()
-    #     logits_text_per_text = umodel.logit_scale.exp() * text_embeds @ text_embeds.t()
-    #     inmodal_cyclic_loss = (logits_image_per_image - logits_text_per_text).square().mean() / (umodel.logit_scale.exp() * umodel.logit_scale.exp()) * batch_size
-    
-    # crossmodal_cyclic_loss = torch.tensor(0).to(options.device)
-    # if(options.cylambda2 > 0):
-    #     crossmodal_cyclic_loss = (logits_text_per_image - logits_image_per_text).square().mean() / (umodel.logit_scale.exp() * umodel.logit_scale.exp()) * batch_size
-
-    # cyclic_loss = options.cylambda1 * inmodal_cyclic_loss + options.cylambda2 * crossmodal_cyclic_loss
+    if options.memory_bank and options.few_epoch and current_epoch % options.break_epoch == 0:
+        crossmodal_contrastive_loss_nn = (criterion(logits_text_per_image_nn, target) + criterion(logits_image_per_text_nn, target)) / 2
+        crossmodal_contrastive_loss = (criterion(logits_text_per_image, target) + criterion(logits_image_per_text, target)) / 2
+        contrastive_loss = options.alpha * crossmodal_contrastive_loss + options.alpha_nn * crossmodal_contrastive_loss_nn
+    else:
+        crossmodal_contrastive_loss = (criterion(logits_text_per_image, target) + criterion(logits_image_per_text, target)) / 2
+        contrastive_loss = crossmodal_contrastive_loss
     loss = contrastive_loss
     
-    return loss, contrastive_loss
+    return loss, contrastive_loss   
+
+
+
+    # if options.memory_bank and options.few_epoch and current_epoch % options.break_epoch == 0:
+    #     image_embeds_nn = image_memory_bank(image_embeds, update=True)
+    #     text_embeds_nn = text_memory_bank(image_embeds, update=False)
+    #     text_memory_bank(text_embeds, update=True)
+    #     logits_text_per_image = umodel.logit_scale.exp() * image_embeds_nn @ text_embeds.t()
+    #     logits_image_per_text = umodel.logit_scale.exp() * text_embeds_nn @ image_embeds.t()
+    # # elif options.memory_bank and not options.few_epoch:
+    # #     image_embeds_nn = image_memory_bank(image_embeds, update=True)
+    # #     text_embeds_nn = text_memory_bank(image_embeds, update=False)
+    # #     text_memory_bank(text_embeds, update=True)
+    # #     logits_text_per_image = umodel.logit_scale.exp() * image_embeds_nn @ text_embeds.t()
+    # #     logits_image_per_text = umodel.logit_scale.exp() * text_embeds_nn @ image_embeds.t()
+    # elif options.memory_bank and options.keep_learning and current_epoch > 15:
+    #     image_embeds_nn = image_memory_bank(image_embeds, update=True)
+    #     text_embeds_nn = text_memory_bank(image_embeds, update=False)
+    #     text_memory_bank(text_embeds, update=True)
+    #     logits_text_per_image = umodel.logit_scale.exp() * image_embeds_nn @ text_embeds.t()
+    #     logits_image_per_text = umodel.logit_scale.exp() * text_embeds_nn @ image_embeds.t()
+    # else:
+    #     logits_text_per_image = umodel.logit_scale.exp() * image_embeds @ text_embeds.t()
+    #     logits_image_per_text = logits_text_per_image.t()
+    # batch_size = len(logits_text_per_image)
+    
+    # target = torch.arange(batch_size).long().to(options.device, non_blocking = True)
+    
+    # contrastive_loss = torch.tensor(0).to(options.device)
+    # crossmodal_contrastive_loss = (criterion(logits_text_per_image, target) + criterion(logits_image_per_text, target)) / 2
+    # contrastive_loss = crossmodal_contrastive_loss
+
+    # # inmodal_cyclic_loss = torch.tensor(0).to(options.device)
+    # # if(options.cylambda1 > 0):
+    # #     logits_image_per_image = umodel.logit_scale.exp() * image_embeds @ image_embeds.t()
+    # #     logits_text_per_text = umodel.logit_scale.exp() * text_embeds @ text_embeds.t()
+    # #     inmodal_cyclic_loss = (logits_image_per_image - logits_text_per_text).square().mean() / (umodel.logit_scale.exp() * umodel.logit_scale.exp()) * batch_size
+    
+    # # crossmodal_cyclic_loss = torch.tensor(0).to(options.device)
+    # # if(options.cylambda2 > 0):
+    # #     crossmodal_cyclic_loss = (logits_text_per_image - logits_image_per_text).square().mean() / (umodel.logit_scale.exp() * umodel.logit_scale.exp()) * batch_size
+
+    # # cyclic_loss = options.cylambda1 * inmodal_cyclic_loss + options.cylambda2 * crossmodal_cyclic_loss
+    # loss = contrastive_loss
+    
+    # return loss, contrastive_loss
 
 def train(epoch, model, data, optimizer, scheduler, scaler, options, memory_bank, memory_bank_text=None):    
     if options.memory_bank and options.few_epoch and epoch % options.break_epoch == 0:
         logging.info("few epoch loss")
-    elif options.memory_bank and options.keep_learning and epoch > 10:
+    elif options.memory_bank and options.keep_learning and epoch > 15:
         logging.info("overflow loss")
     else:
         logging.info("standard loss")
