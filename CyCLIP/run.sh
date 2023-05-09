@@ -1,7 +1,7 @@
 #!/bin/bash
 
-runName='1M_per_2_0.5_0.5_all_epoch'
-device=6
+runName='short100K_baseline'
+device=7
 
 beginEpoch=1
 endEpoch=5

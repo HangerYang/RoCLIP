@@ -43,12 +43,13 @@ def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch):
     if options.memory_bank and options.few_epoch and current_epoch % options.break_epoch == 0:
         logits_text_per_image = umodel.logit_scale.exp() * image_embeds @ text_embeds.t()
         logits_image_per_text = logits_text_per_image.t()
-        image_embeds_nn = image_memory_bank(image_embeds, update=True)
+        image_embeds_nn = image_memory_bank(image_embeds, update=False)
         text_embeds_nn = text_memory_bank(image_embeds, update=False)
-        text_memory_bank(text_embeds, update=True)
         logits_text_per_image_nn = umodel.logit_scale.exp() * image_embeds_nn @ text_embeds.t()
         logits_image_per_text_nn = umodel.logit_scale.exp() * text_embeds_nn @ image_embeds.t() 
     else:
+        image_embeds_nn = image_memory_bank(image_embeds, update=True)
+        text_embeds_nn = text_memory_bank(text_embeds, update=True)
         logits_text_per_image = umodel.logit_scale.exp() * image_embeds @ text_embeds.t()
         logits_image_per_text = logits_text_per_image.t()
     batch_size = len(logits_text_per_image)
@@ -114,12 +115,6 @@ def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch):
     # return loss, contrastive_loss
 
 def train(epoch, model, data, optimizer, scheduler, scaler, options, memory_bank, memory_bank_text=None):    
-    if options.memory_bank and options.few_epoch and epoch % options.break_epoch == 0:
-        logging.info("few epoch loss")
-    elif options.memory_bank and options.keep_learning and epoch > 15:
-        logging.info("overflow loss")
-    else:
-        logging.info("standard loss")
     dataloader = data["train"]
     if(options.distributed): dataloader.sampler.set_epoch(epoch)
 
