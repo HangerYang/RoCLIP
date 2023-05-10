@@ -123,7 +123,7 @@ def worker(rank, options, logger):
     #     wandb.save(os.path.join(options.log_dir_path, "params.txt"))
     if(options.representation):
         logging.info("at least its working, I guess.")
-    evaluate(start_epoch, model, processor, data, options)
+    # evaluate(start_epoch, model, processor, data, options)
 
     if(data["train"] is not None and not options.representation):
         options.checkpoints_dir_path = os.path.join(options.log_dir_path, "checkpoints")

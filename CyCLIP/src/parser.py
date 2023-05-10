@@ -54,5 +54,7 @@ def parse_args():
     parser.add_argument("--keep_learning", action = "store_true", default = False, help = "Only use NN loss after certain epoch (predefined)")
     parser.add_argument("--alpha", type = float, default = 0, help = "lambda 1")
     parser.add_argument("--alpha_nn", type = float, default = 0, help = "lambda 2")
+    parser.add_argument("--few_epoch_text", action = "store_true", default = False, help = "activate NN loss per 'break_epoch' epoch")
+    parser.add_argument("--few_epoch_image", action = "store_true", default = False, help = "activate NN loss per 'break_epoch' epoch")
     options = parser.parse_args()
     return options
