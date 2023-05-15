@@ -1,10 +1,10 @@
 #!/bin/bash
 
-runName='100K_no_aug'
-lpName='100K_no_aug_eval'
+runName='100K_yes_aug'
+lpName='100K_aug_baseline_eval'
 device=4
 
-beginEpoch=21
+beginEpoch=30
 endEpoch=30
 batch_size=256
 
@@ -25,8 +25,8 @@ mkdir "logs/$runName/ZS_output_logs/$eval_data_type"
 done
 
 # poison eval args
-dataset='imagenet40'
-poison_path='../aug_ablation_1_40_info.csv'
+dataset='CC1M'
+poison_path='../CC_backdoor_test_info_1M.csv'
 
 
 for ((i=$beginEpoch; i<=$endEpoch; i=i+3))
