@@ -40,12 +40,13 @@ class ImageCaptionDataset(Dataset):
         if(self.inmodal or self.cross_aug):
             item["input_ids"] = self.augment_captions["input_ids"][idx]
             item["attention_mask"] = self.augment_captions["attention_mask"][idx]
-            # item["pixel_values"] = self.processor.process_image(Image.open(os.path.join(self.root, self.images[idx]))), self.processor.process_image(Image.open(os.path.join(self.root, self.images[idx])))
             item["pixel_values"] =  self.processor.process_image(_augment_image(os.path.join(self.root, self.images[idx])))
+            item["index"] = idx
         else:  
             item["input_ids"] = self.captions["input_ids"][idx]
             item["attention_mask"] = self.captions["attention_mask"][idx]
             item["pixel_values"] = self.processor.process_image(Image.open(os.path.join(self.root, self.images[idx])).convert('RGB'))
+            item["index"] = idx
             
         return item
 
@@ -59,10 +60,8 @@ def get_train_dataloader(options, processor):
         
     sampler = DistributedSampler(dataset) if(options.distributed) else None
     logging.info(str(sampler))
-    if options.representation:
-        dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = False, num_workers = options.num_workers, drop_last = False)
-    else:
-        dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = (sampler is None), num_workers = options.num_workers, pin_memory = True, sampler = sampler, drop_last = True)
+
+    dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = (sampler is None), num_workers = options.num_workers, pin_memory = True, sampler = sampler, drop_last = True)
     dataloader.num_samples = len(dataloader) * batch_size
     dataloader.num_batches = len(dataloader)
 

@@ -1,10 +1,11 @@
 #!/bin/bash
 
-runName='100K_per_3_epoch_random'
-device=7
+runName='100K_no_aug'
+lpName='100K_no_aug_eval'
+device=4
 
-beginEpoch=16
-endEpoch=32
+beginEpoch=21
+endEpoch=30
 batch_size=256
 
 # clean similarity args
@@ -12,21 +13,23 @@ cleanDataPath='../short_100K_clean.csv'
 validationPath='../valid_temp.csv'
 
 # LP args
-eval_data_types=('CIFAR10' 'CIFAR100' 'ImageNet1K')
-
+# eval_data_types=('CIFAR10' 'CIFAR100' 'ImageNet1K' 'caltech101' 'flowers_102' 'food_101')
+eval_data_types='CIFAR10'
 
 for eval_data_type in "${eval_data_types[@]}"
 do
+mkdir "logs/$runName/LP_output_logs/"
+mkdir "logs/$runName/ZS_output_logs/"
 mkdir "logs/$runName/LP_output_logs/$eval_data_type"
 mkdir "logs/$runName/ZS_output_logs/$eval_data_type"
 done
 
 # poison eval args
-dataset='imagenet100'
-poison_path='../random_poison_80_info.csv'
+dataset='imagenet40'
+poison_path='../aug_ablation_1_40_info.csv'
 
 
-for ((i=$beginEpoch; i<=$endEpoch; i++))
+for ((i=$beginEpoch; i<=$endEpoch; i=i+3))
 do
     checkpointPath="logs/$runName/checkpoints/epoch_$i.pt"
     
@@ -40,20 +43,19 @@ do
         eval_test_data_dir="data/$eval_data_type/test"
 
         # get LP accuracy
-        python -m src.main --name $runName --eval_data_type $eval_data_type --eval_train_data_dir $eval_train_data_dir --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath --linear_probe --linear_probe_batch_size $batch_size
-        wait
-        cp "logs/$runName/output.log" "logs/$runName/LP_output_logs/$eval_data_type/output_epoch$i.log" 
-        wait
+        # python -m src.main --name $lpName --eval_data_type $eval_data_type --eval_train_data_dir $eval_train_data_dir --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath --linear_probe --linear_probe_batch_size $batch_size
+        # wait
+        # cp "logs/$lpName/output.log" "logs/$runName/LP_output_logs/$eval_data_type/output_epoch$i.log" 
+        # wait
 
         # get ZS accuracy
-        python -m src.main --name $runName --eval_data_type $eval_data_type  --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath 
-        wait
-        cp "logs/$runName/output.log" "logs/$runName/ZS_output_logs/$eval_data_type/output_epoch$i.log" 
-        wait
+        # python -m src.main --name $lpName --eval_data_type $eval_data_type  --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath 
+        # wait
+        # cp "logs/$lpName/output.log" "logs/$runName/ZS_output_logs/$eval_data_type/output_epoch$i.log" 
+        # wait
     done 
 
     # get poison evals 
-    # python verify_with_template_full.py --model_name $runName --device $device --epoch $i --dataset $dataset --path $poison_path
-    # wait
+    python verify_with_template_full.py --model_name $runName --device $device --epoch $i --dataset $dataset --path $poison_path
+    wait
 done
-

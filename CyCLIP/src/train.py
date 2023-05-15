@@ -5,9 +5,11 @@ import logging
 import torch.nn as nn
 import torch.distributed as dist
 from torch.cuda.amp import autocast
+from .evaluate import get_similarity_distance
+import numpy as np
 
 
-def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch):  
+def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch, sample_index=None):  
     image_embeds = outputs.image_embeds
     text_embeds = outputs.text_embeds
     image_memory_bank  = memory_bank[0]
@@ -40,54 +42,43 @@ def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch):
             text_embeds  = torch.cat(gathered_text_embeds[:options.rank]+ [text_embeds] + gathered_text_embeds[options.rank + 1:])
     
     
+    if options.representation:
+        if options.memory_bank:
+            image_embeds_nn = image_memory_bank(image_embeds, update=True)
+            text_embeds_nn = text_memory_bank(text_embeds, update=True, threshold=0.9)
+            get_similarity_distance(options, image_embeds.cpu().detach().numpy(), text_embeds.cpu().detach().numpy(), image_embeds_nn.cpu().detach().numpy(), text_embeds_nn.cpu().detach().numpy(), sample_index, current_epoch)
+            logits_text_per_image = umodel.logit_scale.exp() * image_embeds @ text_embeds.t()
+            logits_image_per_text = logits_text_per_image.t()
+        batch_size = len(logits_text_per_image)
+    
+        target = torch.arange(batch_size).long().to(options.device, non_blocking = True)
+        
+        contrastive_loss = torch.tensor(0).to(options.device)
+        crossmodal_contrastive_loss = (criterion(logits_text_per_image, target) + criterion(logits_image_per_text, target)) / 2
+        contrastive_loss = crossmodal_contrastive_loss
+        loss = contrastive_loss
+        return loss, contrastive_loss 
+        
+        
+
     if options.memory_bank and options.few_epoch and current_epoch % options.break_epoch == 0:
         image_embeds_nn = image_memory_bank(image_embeds, update=True)
-        text_embeds_nn = text_memory_bank(image_embeds, update=False)
-        text_memory_bank(text_embeds, update=True)
-        logits_text_per_image = umodel.logit_scale.exp() * image_embeds_nn @ text_embeds.t()
+        text_embeds_nn = text_memory_bank(image_embeds, update=False)   
+        text_memory_bank(text_embeds, update=True)     
+        logits_text_per_image_zero = umodel.logit_scale.exp() * image_embeds_nn @ text_embeds.t()
         logits_image_per_text = umodel.logit_scale.exp() * text_embeds_nn @ image_embeds.t() 
-        logits_image_per_text_zero = logits_text_per_image.t()
-    elif options.memory_bank and options.few_epoch_image and current_epoch > 1:
-        image_embeds_nn = image_memory_bank(image_embeds, update=True)
-        text_embeds_nn = text_memory_bank(image_embeds, update=False)
-        text_memory_bank(text_embeds, update=True)
-        logits_text_per_image = umodel.logit_scale.exp() * image_embeds_nn @ text_embeds.t()
-        logits_image_per_text_zero = umodel.logit_scale.exp() * text_embeds_nn @ image_embeds.t() 
-        logits_image_per_text = logits_text_per_image.t()
+        logits_text_per_image = logits_image_per_text.t()
     else:
         logits_text_per_image = umodel.logit_scale.exp() * image_embeds @ text_embeds.t()
         logits_image_per_text = logits_text_per_image.t()
-        logits_image_per_text_zero = logits_text_per_image.t()
+        logits_text_per_image_zero = logits_text_per_image.t()
     batch_size = len(logits_text_per_image)
     
     target = torch.arange(batch_size).long().to(options.device, non_blocking = True)
     
     contrastive_loss = torch.tensor(0).to(options.device)
     crossmodal_contrastive_loss = (criterion(logits_text_per_image, target) + criterion(logits_image_per_text, target)) / 2
-    # if options.memory_bank and options.few_epoch and current_epoch % options.break_epoch == 0:
-    #     logits_text_per_image = umodel.logit_scale.exp() * image_embeds @ text_embeds.t()
-    #     logits_image_per_text = logits_text_per_image.t()
-    #     image_embeds_nn = image_memory_bank(image_embeds, update=False)
-    #     text_embeds_nn = text_memory_bank(image_embeds, update=False)
-    #     logits_text_per_image_nn = umodel.logit_scale.exp() * image_embeds_nn @ text_embeds.t()
-    #     logits_image_per_text_nn = umodel.logit_scale.exp() * text_embeds_nn @ image_embeds.t() 
-    # else:
-    #     image_embeds_nn = image_memory_bank(image_embeds, update=True)
-    #     text_embeds_nn = text_memory_bank(text_embeds, update=True)
-    #     logits_text_per_image = umodel.logit_scale.exp() * image_embeds @ text_embeds.t()
-    #     logits_image_per_text = logits_text_per_image.t()
-    # batch_size = len(logits_text_per_image)
-    
-    # target = torch.arange(batch_size).long().to(options.device, non_blocking = True)
-    
-    # contrastive_loss = torch.tensor(0).to(options.device)
-    # if options.memory_bank and options.few_epoch and current_epoch % options.break_epoch == 0:
-    #     crossmodal_contrastive_loss_nn = (criterion(logits_text_per_image_nn, target) + criterion(logits_image_per_text_nn, target)) / 2
-    #     crossmodal_contrastive_loss = (criterion(logits_text_per_image, target) + criterion(logits_image_per_text, target)) / 2
-    #     contrastive_loss = options.alpha * crossmodal_contrastive_loss + options.alpha_nn * crossmodal_contrastive_loss_nn
-    # else:
-    #     crossmodal_contrastive_loss = (criterion(logits_text_per_image, target) + criterion(logits_image_per_text, target)) / 2
-    contrastive_loss = crossmodal_contrastive_loss + 0 * (criterion(logits_image_per_text_zero, target))
+    contrastive_loss = crossmodal_contrastive_loss + 0 * (criterion(logits_text_per_image_zero, target))
     loss = contrastive_loss
     
     return loss, contrastive_loss   
@@ -138,10 +129,9 @@ def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch):
     
     # return loss, contrastive_loss
 
-def train(epoch, model, data, optimizer, scheduler, scaler, options, memory_bank, memory_bank_text=None):    
+def train(epoch, model, data, optimizer, scheduler, scaler, options, memory_bank):    
     dataloader = data["train"]
     if(options.distributed): dataloader.sampler.set_epoch(epoch)
-
     model.train()
     criterion = nn.CrossEntropyLoss().to(options.device)
 
@@ -164,12 +154,12 @@ def train(epoch, model, data, optimizer, scheduler, scaler, options, memory_bank
         #     attention_mask = torch.cat([attention_mask, augmented_attention_mask])
         #     pixel_values = torch.cat([pixel_values, augmented_pixel_values])
         # else:
-        input_ids, attention_mask, pixel_values = batch["input_ids"].to(options.device, non_blocking = True), batch["attention_mask"].to(options.device, non_blocking = True), batch["pixel_values"].to(options.device, non_blocking = True)
-        
+        # input_ids, attention_mask, pixel_values = batch["input_ids"].to(options.device, non_blocking = True), batch["attention_mask"].to(options.device, non_blocking = True), batch["pixel_values"].to(options.device, non_blocking = True)
+        input_ids, attention_mask, pixel_values, sample_index = batch["input_ids"].to(options.device, non_blocking = True), batch["attention_mask"].to(options.device, non_blocking = True), batch["pixel_values"].to(options.device, non_blocking = True), batch["index"]
         outputs = model(input_ids = input_ids, attention_mask = attention_mask, pixel_values = pixel_values)
         
         with autocast():
-            loss, contrastive_loss = get_loss(umodel, outputs, criterion, options, memory_bank, epoch)
+            loss, contrastive_loss = get_loss(umodel, outputs, criterion, options, memory_bank, epoch, sample_index)
             scaler.scale(loss).backward()
             scaler.step(optimizer)
         
@@ -183,7 +173,6 @@ def train(epoch, model, data, optimizer, scheduler, scaler, options, memory_bank
             dataloader_num_samples = dataloader.num_samples
 
             logging.info(f"Train Epoch: {epoch:02d} [{num_samples}/{dataloader_num_samples} ({100.0 * (index + 1) / dataloader.num_batches:.0f}%)]\tLoss: {loss.item():.6f}\tTime taken {end - start:.3f}\tLearning Rate: {optimizer.param_groups[0]['lr']:.9f}")
-
             metrics = {"loss": loss.item(), "contrastive_loss": contrastive_loss.item(), "time": end - start, "lr": optimizer.param_groups[0]["lr"]}
             if(options.wandb):
                 for key, value in metrics.items():

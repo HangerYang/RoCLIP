@@ -52,6 +52,7 @@ parser.add_argument("--epoch", type = int, default = 25)
 parser.add_argument("--dataset", type = str, default = "cifar10")
 parser.add_argument("--path", type = str, default = "quiz_1.csv")
 parser.add_argument("--identifier", type = str, default = "0")
+parser.add_argument("--distributed", action = "store_true", default=False)
 options = parser.parse_args()
 templates = almighty["templates"]
 classes = almighty["imagenet"]
@@ -62,10 +63,11 @@ device = 'cuda:{}'.format(options.device)
 model, processor = load_model(name = "RN50", pretrained = False)
 checkpoint = torch.load(pretrained_path, map_location = device)
 state_dict = checkpoint["state_dict"]
-state_dict_rename = {}
-for key, value in state_dict.items():
-    state_dict_rename[key[7:]] = value
-state_dict = state_dict_rename
+if options.distributed:
+    state_dict_rename = {}
+    for key, value in state_dict.items():
+        state_dict_rename[key[7:]] = value
+    state_dict = state_dict_rename
 model.load_state_dict(state_dict)
 model = model.to(device)
 model.eval() 

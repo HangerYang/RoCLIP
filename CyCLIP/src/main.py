@@ -32,6 +32,7 @@ from .data import load as load_data
 from .parser import parse_args
 from .scheduler import cosine_scheduler
 from .logger import get_logger, set_logger
+# from .memory_bank import NNMemoryBankModule
 
 mp.set_start_method("spawn", force = True)
 warnings.filterwarnings("ignore")
@@ -121,11 +122,9 @@ def worker(rank, options, logger):
     #     wandb.init(project = "mrl", notes = options.notes, tags = [], config = vars(options))
     #     wandb.run.name = options.name
     #     wandb.save(os.path.join(options.log_dir_path, "params.txt"))
-    if(options.representation):
-        logging.info("at least its working, I guess.")
-    # evaluate(start_epoch, model, processor, data, options)
+    evaluate(start_epoch, model, processor, data, options)
 
-    if(data["train"] is not None and not options.representation):
+    if(data["train"] is not None):
         options.checkpoints_dir_path = os.path.join(options.log_dir_path, "checkpoints")
         os.makedirs(options.checkpoints_dir_path, exist_ok = True)
 
@@ -143,15 +142,15 @@ def worker(rank, options, logger):
             if(options.master): 
                 logging.info(f"Finished Epoch {epoch}, Time Taken: {end - start:.3f}")
 
-            metrics = evaluate(epoch, model, processor, data, options)
+            # metrics = evaluate(epoch, model, processor, data, options)
 
             if(options.master):
                 checkpoint = {"epoch": epoch, "name": options.name, "state_dict": model.state_dict(), "optimizer": optimizer.state_dict()}
                 torch.save(checkpoint, os.path.join(options.checkpoints_dir_path, f"epoch_{epoch}.pt"))
-                if("loss" in metrics):
-                    if(metrics["loss"] < best_loss):
-                        best_loss = metrics["loss"]
-                        torch.save(checkpoint, os.path.join(options.checkpoints_dir_path, f"epoch.best.pt"))
+                # if("loss" in metrics):
+                #     if(metrics["loss"] < best_loss):
+                #         best_loss = metrics["loss"]
+                #         torch.save(checkpoint, os.path.join(options.checkpoints_dir_path, f"epoch.best.pt"))
 
     if(options.distributed):
         dist.destroy_process_group()
