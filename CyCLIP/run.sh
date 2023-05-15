@@ -1,5 +1,6 @@
 #!/bin/bash
 
+<<<<<<< HEAD
 
 
 runName='100K_clip_pb_20'
@@ -14,6 +15,15 @@ if test -e "logs/$runName/output_train.log"; then
 else
   cp "logs/$runName/output.log" "logs/$runName/output_train.log"
 fi
+=======
+runName='100K_yes_aug'
+lpName='100K_aug_baseline_eval'
+device=4
+
+beginEpoch=30
+endEpoch=30
+batch_size=256
+>>>>>>> a8099de2112ca8bf09a92179a4417c796127eb2b
 
 # clean similarity args
 cleanDataPath='../short_100K_clean.csv'
@@ -31,8 +41,8 @@ do
 done
 
 # poison eval args
-dataset='imagenet20'
-poison_path='../100K_random_poison_20_info_1.csv'
+dataset='CC1M'
+poison_path='../CC_backdoor_test_info_1M.csv'
 
 
 for ((i=$beginEpoch; i<=$endEpoch; i=i+3))
