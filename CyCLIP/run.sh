@@ -1,7 +1,7 @@
 #!/bin/bash
 
-runName='100K_yes_aug'
-lpName='100K_aug_baseline_eval'
+runName='100K_baseline'
+lpName='100K_baseline_eval'
 device=4
 
 beginEpoch=30
