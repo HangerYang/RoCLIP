@@ -15,7 +15,6 @@ Used to evaluate the poison ratio: Input the info file to get poison result.
 Return: top 1 rate, top 3 rate, top 5 rate, target similarity, top 3 similarity among all categories.
 """
 
-classes = almighty["imagenet"]
 def output_sim(target_img, text_features, index):
     top_one_success = 0
     top_three_success = 0

@@ -1,11 +1,11 @@
 #!/bin/bash
 
-runName='100K_baseline'
-lpName='100K_baseline_eval'
+runName='10K_inmodal_check'
+lpName='1M_every_poison_baseline_eval'
 device=4
 
-beginEpoch=30
-endEpoch=30
+beginEpoch=1
+endEpoch=20
 batch_size=256
 
 # clean similarity args
@@ -25,11 +25,11 @@ mkdir "logs/$runName/ZS_output_logs/$eval_data_type"
 done
 
 # poison eval args
-dataset='CC1M'
-poison_path='../CC_backdoor_test_info_1M.csv'
+dataset='cifarten5'
+poison_path='../10K_random_poison_1_5_info.csv'
 
 
-for ((i=$beginEpoch; i<=$endEpoch; i=i+3))
+for ((i=$beginEpoch; i<=$endEpoch; i++))
 do
     checkpointPath="logs/$runName/checkpoints/epoch_$i.pt"
     

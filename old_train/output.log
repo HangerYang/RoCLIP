@@ -1,0 +1,148 @@
+2023-05-16,01:20:13 | INFO | Rank 0 | Using cuda:0 device
+2023-05-16,01:20:13 | INFO | Rank 0 | Params:
+2023-05-16,01:20:13 | INFO | Rank 0 | alpha: 0
+2023-05-16,01:20:13 | INFO | Rank 0 | alpha_nn: 0
+2023-05-16,01:20:13 | INFO | Rank 0 | batch_size: 512
+2023-05-16,01:20:13 | INFO | Rank 0 | beta1: 0.9
+2023-05-16,01:20:13 | INFO | Rank 0 | beta2: 0.999
+2023-05-16,01:20:13 | INFO | Rank 0 | break_epoch: 3
+2023-05-16,01:20:13 | INFO | Rank 0 | caption_key: caption
+2023-05-16,01:20:13 | INFO | Rank 0 | checkpoint: None
+2023-05-16,01:20:13 | INFO | Rank 0 | cross_aug: True
+2023-05-16,01:20:13 | INFO | Rank 0 | cylambda1: 0
+2023-05-16,01:20:13 | INFO | Rank 0 | cylambda2: 0
+2023-05-16,01:20:13 | INFO | Rank 0 | delimiter: ,
+2023-05-16,01:20:13 | INFO | Rank 0 | device: cuda:0
+2023-05-16,01:20:13 | INFO | Rank 0 | device_id: 0
+2023-05-16,01:20:13 | INFO | Rank 0 | device_ids: [0, 1]
+2023-05-16,01:20:13 | INFO | Rank 0 | distributed: True
+2023-05-16,01:20:13 | INFO | Rank 0 | distributed_backend: nccl
+2023-05-16,01:20:13 | INFO | Rank 0 | distributed_init_method: tcp://127.0.0.1:1350
+2023-05-16,01:20:13 | INFO | Rank 0 | epochs: 30
+2023-05-16,01:20:13 | INFO | Rank 0 | eps: 1e-08
+2023-05-16,01:20:13 | INFO | Rank 0 | eval_data_type: None
+2023-05-16,01:20:13 | INFO | Rank 0 | eval_test_data_dir: None
+2023-05-16,01:20:13 | INFO | Rank 0 | eval_train_data_dir: None
+2023-05-16,01:20:13 | INFO | Rank 0 | few_epoch: True
+2023-05-16,01:20:13 | INFO | Rank 0 | few_epoch_image: False
+2023-05-16,01:20:13 | INFO | Rank 0 | few_epoch_text: False
+2023-05-16,01:20:13 | INFO | Rank 0 | image_key: path
+2023-05-16,01:20:13 | INFO | Rank 0 | inmodal: False
+2023-05-16,01:20:13 | INFO | Rank 0 | keep_learning: False
+2023-05-16,01:20:13 | INFO | Rank 0 | linear_probe: False
+2023-05-16,01:20:13 | INFO | Rank 0 | linear_probe_batch_size: 16
+2023-05-16,01:20:13 | INFO | Rank 0 | linear_probe_num_epochs: 32
+2023-05-16,01:20:13 | INFO | Rank 0 | log_dir_path: /home/hyang/RoCLIP/CyCLIP/logs/1M_per_3_lr_full_fewer_1
+2023-05-16,01:20:13 | INFO | Rank 0 | log_file_path: /home/hyang/RoCLIP/CyCLIP/logs/1M_per_3_lr_full_fewer_1/output.log
+2023-05-16,01:20:13 | INFO | Rank 0 | logs: /home/hyang/RoCLIP/CyCLIP/logs/
+2023-05-16,01:20:13 | INFO | Rank 0 | lr: 5e-05
+2023-05-16,01:20:13 | INFO | Rank 0 | master: True
+2023-05-16,01:20:13 | INFO | Rank 0 | memory_bank: True
+2023-05-16,01:20:13 | INFO | Rank 0 | memory_bank_size: 21845
+2023-05-16,01:20:13 | INFO | Rank 0 | model_name: RN50
+2023-05-16,01:20:13 | INFO | Rank 0 | name: 1M_per_3_lr_full_fewer_1
+2023-05-16,01:20:13 | INFO | Rank 0 | notes: None
+2023-05-16,01:20:13 | INFO | Rank 0 | num_devices: 2
+2023-05-16,01:20:13 | INFO | Rank 0 | num_warmup_steps: 10000
+2023-05-16,01:20:13 | INFO | Rank 0 | num_workers: 8
+2023-05-16,01:20:13 | INFO | Rank 0 | pretrained: False
+2023-05-16,01:20:13 | INFO | Rank 0 | rank: 0
+2023-05-16,01:20:13 | INFO | Rank 0 | representation: False
+2023-05-16,01:20:13 | INFO | Rank 0 | train_data: ../train_1M_random_poison_50_2.csv
+2023-05-16,01:20:13 | INFO | Rank 0 | validation_data: ../valid_temp.csv
+2023-05-16,01:20:13 | INFO | Rank 0 | wandb: False
+2023-05-16,01:20:13 | INFO | Rank 0 | weight_decay: 0.1
+2023-05-16,01:20:13 | INFO | Rank 1 | Using cuda:1 device
+2023-05-16,01:20:13 | INFO | Rank 1 | Added key: store_based_barrier_key:1 to store for rank: 1
+2023-05-16,01:20:13 | INFO | Rank 0 | Added key: store_based_barrier_key:1 to store for rank: 0
+2023-05-16,01:20:13 | INFO | Rank 0 | Rank 0: Completed store-based barrier for key:store_based_barrier_key:1 with 2 nodes.
+2023-05-16,01:20:13 | INFO | Rank 1 | Rank 1: Completed store-based barrier for key:store_based_barrier_key:1 with 2 nodes.
+2023-05-16,01:20:24 | INFO | Rank 0 | memory bank online
+2023-05-16,01:20:24 | INFO | Rank 1 | memory bank online
+2023-05-16,01:25:36 | INFO | Rank 0 | <torch.utils.data.distributed.DistributedSampler object at 0x7fae340ce830>
+2023-05-16,01:25:36 | INFO | Rank 0 | data loading time: 309.50510835647583
+2023-05-16,01:25:36 | INFO | Rank 0 | Base evaluation
+2023-05-16,01:25:36 | INFO | Rank 0 | Started validating
+2023-05-16,01:25:42 | INFO | Rank 1 | <torch.utils.data.distributed.DistributedSampler object at 0x7fb8e059a7d0>
+2023-05-16,01:25:42 | INFO | Rank 1 | data loading time: 315.4083740711212
+2023-05-16,01:25:42 | INFO | Rank 1 | Num samples: 500224, Num_batches: 1954
+2023-05-16,01:26:15 | INFO | Rank 0 | Finished validating
+2023-05-16,01:26:15 | INFO | Rank 0 | Results
+2023-05-16,01:26:15 | INFO | Rank 0 | loss: 0.0000
+2023-05-16,01:26:15 | INFO | Rank 0 | Starting Epoch 1
+2023-05-16,01:26:15 | INFO | Rank 0 | Num samples: 500224, Num_batches: 1954
+2023-05-16,01:27:08 | INFO | Rank 0 | Reducer buckets have been rebuilt in this iteration.
+2023-05-16,01:27:08 | INFO | Rank 1 | Reducer buckets have been rebuilt in this iteration.
+2023-05-16,01:31:06 | INFO | Rank 0 | Train Epoch: 01 [99840/500224 (10%)]	Loss: 6.025099	Time taken 290.968	Learning Rate: 0.000010745
+2023-05-16,01:35:06 | INFO | Rank 0 | Train Epoch: 01 [199680/500224 (20%)]	Loss: 5.793394	Time taken 239.906	Learning Rate: 0.000011720
+2023-05-16,01:39:06 | INFO | Rank 0 | Train Epoch: 01 [299520/500224 (30%)]	Loss: 5.684452	Time taken 240.100	Learning Rate: 0.000012695
+2023-05-16,01:43:06 | INFO | Rank 0 | Train Epoch: 01 [399360/500224 (40%)]	Loss: 5.642997	Time taken 240.118	Learning Rate: 0.000013670
+2023-05-16,01:47:06 | INFO | Rank 0 | Train Epoch: 01 [499200/500224 (50%)]	Loss: 5.530517	Time taken 240.328	Learning Rate: 0.000014645
+2023-05-16,01:51:06 | INFO | Rank 0 | Train Epoch: 01 [599040/500224 (60%)]	Loss: 5.433548	Time taken 239.817	Learning Rate: 0.000015620
+2023-05-16,01:55:07 | INFO | Rank 0 | Train Epoch: 01 [698880/500224 (70%)]	Loss: 5.406356	Time taken 240.713	Learning Rate: 0.000016595
+2023-05-16,01:59:07 | INFO | Rank 0 | Train Epoch: 01 [798720/500224 (80%)]	Loss: 5.302626	Time taken 240.301	Learning Rate: 0.000017570
+2023-05-16,02:03:07 | INFO | Rank 0 | Train Epoch: 01 [898560/500224 (90%)]	Loss: 5.225052	Time taken 239.659	Learning Rate: 0.000018545
+2023-05-16,02:07:06 | INFO | Rank 0 | Train Epoch: 01 [998400/500224 (100%)]	Loss: 5.287562	Time taken 239.511	Learning Rate: 0.000019520
+2023-05-16,02:07:11 | INFO | Rank 0 | Train Epoch: 01 [1000448/500224 (100%)]	Loss: 5.177866	Time taken 4.872	Learning Rate: 0.000019540
+2023-05-16,02:07:13 | INFO | Rank 1 | Num samples: 500224, Num_batches: 1954
+2023-05-16,02:07:13 | INFO | Rank 0 | Finished Epoch 1, Time Taken: 2458.612
+2023-05-16,02:07:15 | INFO | Rank 0 | Starting Epoch 2
+2023-05-16,02:07:15 | INFO | Rank 0 | Num samples: 500224, Num_batches: 1954
+2023-05-16,02:12:02 | INFO | Rank 0 | Train Epoch: 02 [99840/500224 (10%)]	Loss: 5.016486	Time taken 286.704	Learning Rate: 0.000020515
+2023-05-16,02:16:02 | INFO | Rank 0 | Train Epoch: 02 [199680/500224 (20%)]	Loss: 5.093625	Time taken 240.526	Learning Rate: 0.000021490
+2023-05-16,02:20:01 | INFO | Rank 0 | Train Epoch: 02 [299520/500224 (30%)]	Loss: 5.006906	Time taken 238.948	Learning Rate: 0.000022465
+2023-05-16,02:24:00 | INFO | Rank 0 | Train Epoch: 02 [399360/500224 (40%)]	Loss: 4.886841	Time taken 239.032	Learning Rate: 0.000023440
+2023-05-16,02:28:00 | INFO | Rank 0 | Train Epoch: 02 [499200/500224 (50%)]	Loss: 4.859954	Time taken 239.414	Learning Rate: 0.000024415
+2023-05-16,02:31:59 | INFO | Rank 0 | Train Epoch: 02 [599040/500224 (60%)]	Loss: 4.793347	Time taken 238.988	Learning Rate: 0.000025390
+2023-05-16,02:35:59 | INFO | Rank 0 | Train Epoch: 02 [698880/500224 (70%)]	Loss: 4.850472	Time taken 240.182	Learning Rate: 0.000026365
+2023-05-16,02:39:58 | INFO | Rank 0 | Train Epoch: 02 [798720/500224 (80%)]	Loss: 4.646532	Time taken 239.051	Learning Rate: 0.000027340
+2023-05-16,02:43:57 | INFO | Rank 0 | Train Epoch: 02 [898560/500224 (90%)]	Loss: 4.723215	Time taken 239.181	Learning Rate: 0.000028315
+2023-05-16,02:47:57 | INFO | Rank 0 | Train Epoch: 02 [998400/500224 (100%)]	Loss: 4.695811	Time taken 239.313	Learning Rate: 0.000029290
+2023-05-16,02:48:02 | INFO | Rank 0 | Train Epoch: 02 [1000448/500224 (100%)]	Loss: 4.742365	Time taken 4.872	Learning Rate: 0.000029310
+2023-05-16,02:48:04 | INFO | Rank 0 | Finished Epoch 2, Time Taken: 2448.486
+2023-05-16,02:48:04 | INFO | Rank 1 | Num samples: 500224, Num_batches: 1954
+2023-05-16,02:48:06 | INFO | Rank 0 | Starting Epoch 3
+2023-05-16,02:48:06 | INFO | Rank 0 | Num samples: 500224, Num_batches: 1954
+2023-05-16,02:52:51 | INFO | Rank 0 | Train Epoch: 03 [99840/500224 (10%)]	Loss: 1.480374	Time taken 285.834	Learning Rate: 0.000030285
+2023-05-16,02:56:51 | INFO | Rank 0 | Train Epoch: 03 [199680/500224 (20%)]	Loss: 1.297054	Time taken 239.246	Learning Rate: 0.000031260
+2023-05-16,03:00:50 | INFO | Rank 0 | Train Epoch: 03 [299520/500224 (30%)]	Loss: 1.193625	Time taken 239.136	Learning Rate: 0.000032235
+2023-05-16,03:04:49 | INFO | Rank 0 | Train Epoch: 03 [399360/500224 (40%)]	Loss: 1.102616	Time taken 239.596	Learning Rate: 0.000033210
+2023-05-16,03:08:49 | INFO | Rank 0 | Train Epoch: 03 [499200/500224 (50%)]	Loss: 1.095163	Time taken 239.642	Learning Rate: 0.000034185
+2023-05-16,03:12:49 | INFO | Rank 0 | Train Epoch: 03 [599040/500224 (60%)]	Loss: 1.044569	Time taken 239.882	Learning Rate: 0.000035160
+2023-05-16,03:16:48 | INFO | Rank 0 | Train Epoch: 03 [698880/500224 (70%)]	Loss: 1.002009	Time taken 239.056	Learning Rate: 0.000036135
+2023-05-16,03:20:47 | INFO | Rank 0 | Train Epoch: 03 [798720/500224 (80%)]	Loss: 0.986958	Time taken 239.327	Learning Rate: 0.000037110
+2023-05-16,03:24:47 | INFO | Rank 0 | Train Epoch: 03 [898560/500224 (90%)]	Loss: 0.939185	Time taken 239.227	Learning Rate: 0.000038085
+2023-05-16,03:28:47 | INFO | Rank 0 | Train Epoch: 03 [998400/500224 (100%)]	Loss: 0.891938	Time taken 240.038	Learning Rate: 0.000039060
+2023-05-16,03:28:52 | INFO | Rank 0 | Train Epoch: 03 [1000448/500224 (100%)]	Loss: 0.898939	Time taken 4.871	Learning Rate: 0.000039080
+2023-05-16,03:28:54 | INFO | Rank 1 | Num samples: 500224, Num_batches: 1954
+2023-05-16,03:28:54 | INFO | Rank 0 | Finished Epoch 3, Time Taken: 2448.227
+2023-05-16,03:28:56 | INFO | Rank 0 | Starting Epoch 4
+2023-05-16,03:28:56 | INFO | Rank 0 | Num samples: 500224, Num_batches: 1954
+2023-05-16,03:33:42 | INFO | Rank 0 | Train Epoch: 04 [99840/500224 (10%)]	Loss: 4.991227	Time taken 286.090	Learning Rate: 0.000040055
+2023-05-16,03:37:41 | INFO | Rank 0 | Train Epoch: 04 [199680/500224 (20%)]	Loss: 4.829750	Time taken 239.552	Learning Rate: 0.000041030
+2023-05-16,03:41:40 | INFO | Rank 0 | Train Epoch: 04 [299520/500224 (30%)]	Loss: 4.490286	Time taken 239.001	Learning Rate: 0.000042005
+2023-05-16,03:45:40 | INFO | Rank 0 | Train Epoch: 04 [399360/500224 (40%)]	Loss: 4.568155	Time taken 239.447	Learning Rate: 0.000042980
+2023-05-16,03:49:39 | INFO | Rank 0 | Train Epoch: 04 [499200/500224 (50%)]	Loss: 4.413986	Time taken 238.640	Learning Rate: 0.000043955
+2023-05-16,03:53:38 | INFO | Rank 0 | Train Epoch: 04 [599040/500224 (60%)]	Loss: 4.519497	Time taken 239.027	Learning Rate: 0.000044930
+2023-05-16,03:57:37 | INFO | Rank 0 | Train Epoch: 04 [698880/500224 (70%)]	Loss: 4.408450	Time taken 239.095	Learning Rate: 0.000045905
+2023-05-16,04:01:36 | INFO | Rank 0 | Train Epoch: 04 [798720/500224 (80%)]	Loss: 4.223628	Time taken 239.101	Learning Rate: 0.000046880
+2023-05-16,04:05:36 | INFO | Rank 0 | Train Epoch: 04 [898560/500224 (90%)]	Loss: 4.236512	Time taken 240.135	Learning Rate: 0.000047855
+2023-05-16,04:09:35 | INFO | Rank 0 | Train Epoch: 04 [998400/500224 (100%)]	Loss: 4.290640	Time taken 239.291	Learning Rate: 0.000048830
+2023-05-16,04:09:40 | INFO | Rank 0 | Train Epoch: 04 [1000448/500224 (100%)]	Loss: 4.296495	Time taken 4.869	Learning Rate: 0.000048850
+2023-05-16,04:09:42 | INFO | Rank 0 | Finished Epoch 4, Time Taken: 2446.688
+2023-05-16,04:09:43 | INFO | Rank 1 | Num samples: 500224, Num_batches: 1954
+2023-05-16,04:09:44 | INFO | Rank 0 | Starting Epoch 5
+2023-05-16,04:09:44 | INFO | Rank 0 | Num samples: 500224, Num_batches: 1954
+2023-05-16,04:14:31 | INFO | Rank 0 | Train Epoch: 05 [99840/500224 (10%)]	Loss: 4.212014	Time taken 287.148	Learning Rate: 0.000049825
+2023-05-16,04:18:32 | INFO | Rank 0 | Train Epoch: 05 [199680/500224 (20%)]	Loss: 4.097595	Time taken 240.155	Learning Rate: 0.000049999
+2023-05-16,04:22:31 | INFO | Rank 0 | Train Epoch: 05 [299520/500224 (30%)]	Loss: 4.130400	Time taken 239.120	Learning Rate: 0.000049993
+2023-05-16,04:26:30 | INFO | Rank 0 | Train Epoch: 05 [399360/500224 (40%)]	Loss: 4.032207	Time taken 239.036	Learning Rate: 0.000049984
+2023-05-16,04:30:29 | INFO | Rank 0 | Train Epoch: 05 [499200/500224 (50%)]	Loss: 4.117346	Time taken 238.816	Learning Rate: 0.000049971
+2023-05-16,04:34:27 | INFO | Rank 0 | Train Epoch: 05 [599040/500224 (60%)]	Loss: 3.987780	Time taken 238.757	Learning Rate: 0.000049954
+2023-05-16,04:38:26 | INFO | Rank 0 | Train Epoch: 05 [698880/500224 (70%)]	Loss: 3.903462	Time taken 238.858	Learning Rate: 0.000049933
+2023-05-16,04:42:25 | INFO | Rank 0 | Train Epoch: 05 [798720/500224 (80%)]	Loss: 3.985175	Time taken 238.902	Learning Rate: 0.000049908
+2023-05-16,04:46:24 | INFO | Rank 0 | Train Epoch: 05 [898560/500224 (90%)]	Loss: 3.868641	Time taken 238.821	Learning Rate: 0.000049879
+2023-05-16,04:50:23 | INFO | Rank 0 | Train Epoch: 05 [998400/500224 (100%)]	Loss: 3.884143	Time taken 238.992	Learning Rate: 0.000049846
+2023-05-16,04:50:28 | INFO | Rank 0 | Train Epoch: 05 [1000448/500224 (100%)]	Loss: 3.881629	Time taken 4.898	Learning Rate: 0.000049845
+2023-05-16,04:50:29 | INFO | Rank 1 | Num samples: 500224, Num_batches: 1954
+2023-05-16,04:50:30 | INFO | Rank 0 | Finished Epoch 5, Time Taken: 2445.642
