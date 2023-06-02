@@ -29,6 +29,7 @@ sys.path.insert(1, 'src')
 from .train import train
 from .evaluate import evaluate
 from .data import load as load_data
+from .data import get_subset_dataloader 
 from .parser import parse_args
 from .scheduler import cosine_scheduler
 from .logger import get_logger, set_logger
@@ -83,7 +84,7 @@ def worker(rank, options, logger):
     logging.info("data loading time: {}".format(str(load_end - load_start)))
     optimizer = None
     scheduler = None
-    if(data["train"] is not None):        
+    if(data["train_set"] is not None):        
         weight_decay_parameters = []
         no_weight_decay_parameters = []
 
@@ -93,10 +94,12 @@ def worker(rank, options, logger):
                 
             if(any(key in name for key in ["bn", "ln", "bias", "logit_scale"]) and parameter.requires_grad):
                 no_weight_decay_parameters.append(parameter)
-
+        
+        data['train'] = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])))
         optimizer = optim.AdamW([{"params": no_weight_decay_parameters, "weight_decay": 0}, {"params": weight_decay_parameters, "weight_decay": options.weight_decay}], lr = options.lr, betas = (options.beta1, options.beta2), eps = options.eps)
         scheduler = cosine_scheduler(optimizer, options.lr, options.num_warmup_steps, data["train"].num_batches * options.epochs)
-
+        
+       
     start_epoch = 0
     if(options.checkpoint is not None):
         if(os.path.isfile(options.checkpoint)):
@@ -133,7 +136,16 @@ def worker(rank, options, logger):
                 logging.info(f"Starting Epoch {epoch}")
 
             start = time.time()
-            train(epoch, model, data, optimizer, scheduler, scaler, options, caption_memory_bank)
+            if epoch <= options.inmodal_warmup:
+                train(epoch, model, data, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
+            else:
+                similarities, sample_indices = train(epoch, model, data, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
+                if epoch == options.inmodal_warmup + 1:
+                    
+                    sorted_indices = torch.argsort(similarities, descending=True)
+                    filtered_indices = sorted_indices[:int(len(similarities)*options.filter_ratio)]
+                    next_indices = sample_indices[filtered_indices]
+                    data["train"] = get_subset_dataloader(options, data['train_set'], next_indices)
             end = time.time()
 
             if(options.master): 

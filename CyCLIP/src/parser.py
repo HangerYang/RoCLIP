@@ -53,5 +53,7 @@ def parse_args():
     parser.add_argument("--cross_aug", action = "store_true", default = False, help = "augmentation")
     parser.add_argument("--break_epoch", type = int, default = 5, help = "frequency of using NN loss")
     parser.add_argument("--filter",action = "store_true", default = False)
+    parser.add_argument("--inmodal_warmup", type = int, default = 1, help = "number of epochs for inmodal pretraining")
+    parser.add_argument("--filter_ratio", type = float, default = 0.5, help = "the ratio of samples to keep")
     options = parser.parse_args()
     return options

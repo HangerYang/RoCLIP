@@ -4,7 +4,7 @@ import logging
 import torchvision
 import pandas as pd
 from PIL import Image, ImageFile
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 from torch.utils.data.distributed import DistributedSampler
 from utils.index_sampler import IndexSampler
 
@@ -69,6 +69,24 @@ def get_train_dataloader(options, processor):
         sampler=None
     logging.info(str(sampler))
     # if not fixmatch:
+    dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = (sampler is None), num_workers = options.num_workers, pin_memory = True, sampler = sampler, drop_last = True)
+    dataloader.num_samples = len(dataloader) * batch_size
+    dataloader.num_batches = len(dataloader)
+    return dataloader
+
+def get_train_dataset(options, processor):
+    path = options.train_data
+    if(path is None): return None
+
+    batch_size = options.batch_size
+
+    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, inmodal = options.inmodal or options.inmodal_warmup > 0, cross_aug=options.cross_aug)
+    return dataset
+
+def get_subset_dataloader(options, dataset, indices):
+    sampler = SubsetRandomSampler(indices)
+
+    batch_size = options.batch_size
     dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = (sampler is None), num_workers = options.num_workers, pin_memory = True, sampler = sampler, drop_last = True)
     dataloader.num_samples = len(dataloader) * batch_size
     dataloader.num_batches = len(dataloader)
@@ -208,8 +226,8 @@ def get_eval_train_dataloader(options, processor):
 def load(options, processor):
     data = {}
     
-    data["train"] = get_train_dataloader(options, processor)
-    data["filtered_train"] = get_filtered_train_dataloader(options, processor)
+    data["train_set"] = get_train_dataset(options, processor)
+    # data["filtered_train"] = get_filtered_train_dataloader(options, processor)
     data["validation"] = get_validation_dataloader(options, processor)
     data["eval_test"] = get_eval_test_dataloader(options, processor)
     data["eval_train"] = get_eval_train_dataloader(options, processor)

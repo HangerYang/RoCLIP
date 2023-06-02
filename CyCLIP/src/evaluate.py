@@ -262,12 +262,12 @@ def get_similarity_distance(options, image, text, text_nn, index, epoch):
     try:
         sim = np.load("representation/{}_{}.npz".format(options.name, epoch))
         index = np.append(sim["index"], index)
-        img_txt = np.append(sim["img_txt"], img_txt)
+        img_txt_acc = np.append(sim["img_txt"], img_txt)
         img_txtnn = np.append(sim["img_txtnn"], img_txtnn)
-        np.savez("representation/{}_{}.npz".format(options.name, epoch), index=index, img_txt=img_txt, img_txtnn=img_txtnn)
+        np.savez("representation/{}_{}.npz".format(options.name, epoch), index=index, img_txt=img_txt_acc, img_txtnn=img_txtnn)
     except:
         np.savez("representation/{}_{}.npz".format(options.name, epoch), index=index, img_txt=img_txt, img_txtnn=img_txtnn)
-    return 0
+    return torch.from_numpy(img_txt), img_txtnn
 # def get_similarity_distance(model, dataloader, options):
 #     logging.info("Let's Rock Babie")
 #     model.eval()
