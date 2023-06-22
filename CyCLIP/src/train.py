@@ -82,7 +82,7 @@ def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch, sa
         contrastive_loss = crossmodal_contrastive_loss + 0 * (criterion(logits_text_per_image_zero, target))
     loss = contrastive_loss
     
-    return loss, contrastive_loss, img_txt
+    return loss, contrastive_loss
 
 
 
@@ -140,8 +140,8 @@ def train(epoch, model, data, optimizer, scheduler, scaler, options, memory_bank
     modulo = max(1, int(dataloader.num_samples / options.batch_size / 10))
     umodel = model.module if(options.distributed) else model
 
-    similarities = []
-    sample_indices = []
+    # similarities = []
+    # sample_indices = []
     start = time.time()
     logging.info(f"Num samples: {dataloader.num_samples}, Num_batches: {dataloader.num_batches}")
     for index, batch in enumerate(dataloader): 
@@ -151,7 +151,8 @@ def train(epoch, model, data, optimizer, scheduler, scaler, options, memory_bank
         optimizer.zero_grad()
         
         input_ids, attention_mask, pixel_values = batch["input_ids"][0].to(options.device, non_blocking = True), batch["attention_mask"][0].to(options.device, non_blocking = True), batch["pixel_values"][0].to(options.device, non_blocking = True)
-        augmented_input_ids, augmented_attention_mask, augmented_pixel_values = batch["input_ids"][1].to(options.device, non_blocking = True), batch["attention_mask"][1].to(options.device, non_blocking = True), batch["pixel_values"][1].to(options.device, non_blocking = True)
+        if(inmodal):
+            augmented_input_ids, augmented_attention_mask, augmented_pixel_values = batch["input_ids"][1].to(options.device, non_blocking = True), batch["attention_mask"][1].to(options.device, non_blocking = True), batch["pixel_values"][1].to(options.device, non_blocking = True)
         sample_index = batch["index"]
 
         if(inmodal):
@@ -163,11 +164,11 @@ def train(epoch, model, data, optimizer, scheduler, scaler, options, memory_bank
         outputs = model(input_ids = input_ids, attention_mask = attention_mask, pixel_values = pixel_values)
 
         with autocast():
-            loss, contrastive_loss, img_txt_similarity = get_loss(umodel, outputs, criterion, options, memory_bank, epoch, sample_index, inmodal=inmodal)
-            similarities.append(img_txt_similarity)
-            sample_indices.append(sample_index)
-            print('img_txt_similarity', img_txt_similarity.shape)
-            print('sample_indices', sample_index.shape)
+            loss, contrastive_loss = get_loss(umodel, outputs, criterion, options, memory_bank, epoch, sample_index, inmodal=inmodal)
+            # similarities.append(img_txt_similarity)
+            # sample_indices.append(sample_index)
+            # print('img_txt_similarity', img_txt_similarity.shape)
+            # print('sample_indices', sample_index.shape)
             scaler.scale(loss).backward()
             scaler.step(optimizer)
         
@@ -187,5 +188,4 @@ def train(epoch, model, data, optimizer, scheduler, scaler, options, memory_bank
                     wandb.log({f"train/{key}": value, "step": step})
         
             start = time.time()
-    
-    return torch.cat(similarities, 0), torch.cat(sample_indices, 0)
+        

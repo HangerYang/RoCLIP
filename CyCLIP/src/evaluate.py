@@ -268,25 +268,28 @@ def get_similarity_distance(options, image, text, text_nn, index, epoch):
     except:
         np.savez("representation/{}_{}.npz".format(options.name, epoch), index=index, img_txt=img_txt, img_txtnn=img_txtnn)
     return torch.from_numpy(img_txt), img_txtnn
-# def get_similarity_distance(model, dataloader, options):
-#     logging.info("Let's Rock Babie")
-#     model.eval()
-#     with torch.no_grad():
-#         total_similarity_distance = np.array([])
-#         for batch in tqdm(dataloader):
-#             if(options.inmodal):
-#                 input_ids, attention_mask, pixel_values = batch["input_ids"][0].to(options.device, non_blocking = True), batch["attention_mask"][0].to(options.device, non_blocking = True), batch["pixel_values"][0].to(options.device, non_blocking = True)
-#                 augmented_input_ids, augmented_attention_mask, augmented_pixel_values = batch["input_ids"][1].to(options.device, non_blocking = True), batch["attention_mask"][1].to(options.device, non_blocking = True), batch["pixel_values"][1].to(options.device, non_blocking = True)
-#                 input_ids = torch.cat([input_ids, augmented_input_ids])
-#                 attention_mask = torch.cat([attention_mask, augmented_attention_mask])
-#                 pixel_values = torch.cat([pixel_values, augmented_pixel_values])
-#             else:
-#                 input_ids, attention_mask, pixel_values = batch["input_ids"].to(options.device, non_blocking = True), batch["attention_mask"].to(options.device, non_blocking = True), batch["pixel_values"].to(options.device, non_blocking = True)
-#             outputs = model(input_ids = input_ids, attention_mask = attention_mask, pixel_values = pixel_values)
-#             umodel = model.module if(options.distributed) else model
-#             a = outputs.image_embeds.cpu().numpy()
-#             b = outputs.text_embeds.cpu().numpy()
 
-#             similarity_matrix = np.diagonal(cosine_similarity(a, b))
-#             total_similarity_distance = np.concatenate((total_similarity_distance, similarity_matrix), 0)
-#     return total_similarity_distance
+def get_all_similarity_distance(model, dataloader, options):
+    model.eval()
+    with torch.no_grad():
+        total_similarity_distance = np.array([])
+        sample_indices = []
+        for batch in tqdm(dataloader):
+            # if(options.inmodal):
+            input_ids, attention_mask, pixel_values = batch["input_ids"][0].to(options.device, non_blocking = True), batch["attention_mask"][0].to(options.device, non_blocking = True), batch["pixel_values"][0].to(options.device, non_blocking = True)
+            sample_index = batch["index"]
+            sample_indices.append(sample_index)
+            # augmented_input_ids, augmented_attention_mask, augmented_pixel_values = batch["input_ids"][1].to(options.device, non_blocking = True), batch["attention_mask"][1].to(options.device, non_blocking = True), batch["pixel_values"][1].to(options.device, non_blocking = True)
+            # input_ids = torch.cat([input_ids, augmented_input_ids])
+            # attention_mask = torch.cat([attention_mask, augmented_attention_mask])
+            # pixel_values = torch.cat([pixel_values, augmented_pixel_values])
+            # else:
+            #     input_ids, attention_mask, pixel_values = batch["input_ids"].to(options.device, non_blocking = True), batch["attention_mask"].to(options.device, non_blocking = True), batch["pixel_values"].to(options.device, non_blocking = True)
+            outputs = model(input_ids = input_ids, attention_mask = attention_mask, pixel_values = pixel_values)
+            umodel = model.module if(options.distributed) else model
+            a = outputs.image_embeds.cpu().numpy()
+            b = outputs.text_embeds.cpu().numpy()
+
+            similarity_matrix = np.diagonal(cosine_similarity(a, b))
+            total_similarity_distance = np.concatenate((total_similarity_distance, similarity_matrix), 0)
+    return torch.from_numpy(total_similarity_distance), torch.cat(sample_indices, 0)

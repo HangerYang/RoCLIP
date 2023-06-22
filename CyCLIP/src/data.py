@@ -83,11 +83,11 @@ def get_train_dataset(options, processor):
     dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, inmodal = options.inmodal or options.inmodal_warmup > 0, cross_aug=options.cross_aug)
     return dataset
 
-def get_subset_dataloader(options, dataset, indices):
+def get_subset_dataloader(options, dataset, indices, drop_last=True):
     sampler = SubsetRandomSampler(indices)
 
     batch_size = options.batch_size
-    dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = (sampler is None), num_workers = options.num_workers, pin_memory = True, sampler = sampler, drop_last = True)
+    dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = (sampler is None), num_workers = options.num_workers, pin_memory = True, sampler = sampler, drop_last = drop_last)
     dataloader.num_samples = len(dataloader) * batch_size
     dataloader.num_batches = len(dataloader)
     return dataloader

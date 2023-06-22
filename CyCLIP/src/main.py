@@ -34,7 +34,7 @@ from .parser import parse_args
 from .scheduler import cosine_scheduler
 from .logger import get_logger, set_logger
 from .memory_bank import NNMemoryBankModule
-
+from .evaluate import get_all_similarity_distance
 mp.set_start_method("spawn", force = True)
 warnings.filterwarnings("ignore")
 
@@ -127,10 +127,12 @@ def worker(rank, options, logger):
     if(data["train"] is not None):
         options.checkpoints_dir_path = os.path.join(options.log_dir_path, "checkpoints")
         os.makedirs(options.checkpoints_dir_path, exist_ok = True)
-
+        current_indices = set()
         scaler = GradScaler()
-
+        
         best_loss = np.inf
+        dataloader_update_epoch = 0    
+        filter_ratio = options.filter_ratio 
         for epoch in range(start_epoch + 1, options.epochs + 1):
             if(options.master): 
                 logging.info(f"Starting Epoch {epoch}")
@@ -138,14 +140,25 @@ def worker(rank, options, logger):
             start = time.time()
             if epoch <= options.inmodal_warmup:
                 train(epoch, model, data, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
-            else:
-                similarities, sample_indices = train(epoch, model, data, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
-                if epoch == options.inmodal_warmup + 1:
-                    
+            elif epoch <= options.multimodal_warmup + options.inmodal_warmup:
+                train(epoch, model, data, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
+            else:            
+                if dataloader_update_epoch % options.loader_update_freq == 0:
+                    # update dataloader
+                    all_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])), drop_last=False)
+                    similarities, sample_indices = get_all_similarity_distance(model, all_loader, options)
+
                     sorted_indices = torch.argsort(similarities, descending=True)
-                    filtered_indices = sorted_indices[:int(len(similarities)*options.filter_ratio)]
-                    next_indices = sample_indices[filtered_indices]
-                    data["train"] = get_subset_dataloader(options, data['train_set'], next_indices)
+                    sample_indices = sample_indices[sorted_indices]
+                    new_indices = [idx for idx in sample_indices.tolist() if idx not in current_indices]
+
+                    filtered_indices = new_indices[:int(len(similarities)*filter_ratio)]
+                    current_indices = current_indices.union(set(filtered_indices)) 
+                    # sample_indices[filtered_indices]
+                    data["train"] = get_subset_dataloader(options, data['train_set'], list(current_indices))
+                    filter_ratio = options.update_filter_ratio
+                train(epoch, model, data, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
+                dataloader_update_epoch += 1
             end = time.time()
 
             if(options.master): 
