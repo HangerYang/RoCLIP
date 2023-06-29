@@ -146,10 +146,19 @@ def worker(rank, options, logger):
                 if dataloader_update_epoch % options.loader_update_freq == 0:
                     # update dataloader
                     all_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])), drop_last=False)
-                    similarities, sample_indices = get_all_similarity_distance(model, all_loader, options)
+                    similarities, sample_indices = get_all_similarity_distance(model, all_loader, options)    
 
                     sorted_indices = torch.argsort(similarities, descending=True)
                     sample_indices = sample_indices[sorted_indices]
+                    if options.save_index:
+                        # Save the combined array to a TSV file
+                        np.savetxt('%s/%s.tsv' % (options.index_dir, options.name), 
+                                # np.array(np.column_stack((sample_indices.numpy(), similarities[sorted_indices].numpy())), \
+                                #         dtype=[('float_col', float), ('int_col', int)]), \
+                                np.column_stack((sample_indices.numpy(), similarities[sorted_indices].numpy())),
+                                delimiter='\t',
+                                fmt=['%d','%0.6f'])
+                    
                     new_indices = [idx for idx in sample_indices.tolist() if idx not in current_indices]
 
                     filtered_indices = new_indices[:int(len(similarities)*filter_ratio)]
@@ -157,6 +166,7 @@ def worker(rank, options, logger):
                     # sample_indices[filtered_indices]
                     data["train"] = get_subset_dataloader(options, data['train_set'], list(current_indices))
                     filter_ratio = options.update_filter_ratio
+                
                 train(epoch, model, data, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
                 dataloader_update_epoch += 1
             end = time.time()
@@ -187,6 +197,8 @@ if(__name__ == "__main__"):
     options.log_file_path = os.path.join(options.log_dir_path, "output.log")
     
     os.makedirs(options.log_dir_path, exist_ok = True)
+    if options.save_index:
+        os.makedirs(options.index_dir, exist_ok = True)
     logger, listener = get_logger(options.log_file_path)
 
     listener.start()
