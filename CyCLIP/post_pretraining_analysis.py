@@ -10,7 +10,7 @@ poisoners = ['desk', 'palace', 'necklace', 'balloon', 'pillow',
              'orange']
 full_poison_range = poison_per_category * len(poisoners)
 
-def plot_poison_distribution(file_path, poison_category='full', filter_ratios=[0.15, 0.2]):
+def plot_poison_distribution(file_path, poison_category='full', filter_ratios=[0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]):
     df = pd.read_csv(file_path, sep='\t', header=None)
     mean_similarity = df[1].mean()
     orig_len = len(df)
@@ -51,14 +51,24 @@ def plot_poison_distribution(file_path, poison_category='full', filter_ratios=[0
     plt.savefig('post_pretraining_analysis/dist_%s_%s.png' \
                 %(re.search(r"/([^/]+).tsv", file_path).group(1), poison_category))
 
+experiments = [
+                # 'freq_3_uf_005_postlr_5e-5_lr_1e-4_',
+                'freq_3_uf_005_postlr_5e-6_lr_1e-4',
+               ]
 
-inmodal_epochs = [1, 2, 3, 4, 5]
-clip_epochs = [1, 2]
+updates = 10
+freq = 3
+for e in experiments:
+    for u in range(updates):
+        plot_poison_distribution('indices/%s_update%d.tsv' % (e,u*freq))
 
-for i in inmodal_epochs:
-    for c in clip_epochs:
-        plot_poison_distribution('indices/inmodal_epoch_%d_clip_epoch_%d.tsv' % (i,c))
-
+# freq = [3]
+# updates = 3
+# lrs = ['005', '01' ]
+# for f in freq:
+#     for u in range(updates):
+#         for lr in lrs:
+#             plot_poison_distribution('indices/post_cliponly_freq_%d_uf_%s_llr_update%d.tsv' % (f,lr,u*f))
 
 
 

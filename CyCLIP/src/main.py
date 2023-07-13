@@ -29,7 +29,7 @@ sys.path.insert(1, 'src')
 from .train import train
 from .evaluate import evaluate
 from .data import load as load_data
-from .data import get_subset_dataloader 
+from .data import get_subset_dataloader, reindex_dataloader
 from .parser import parse_args
 from .scheduler import cosine_scheduler
 from .logger import get_logger, set_logger
@@ -96,10 +96,14 @@ def worker(rank, options, logger):
                 no_weight_decay_parameters.append(parameter)
         
         data['train'] = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])))
+
         optimizer = optim.AdamW([{"params": no_weight_decay_parameters, "weight_decay": 0}, {"params": weight_decay_parameters, "weight_decay": options.weight_decay}], lr = options.lr, betas = (options.beta1, options.beta2), eps = options.eps)
-        scheduler = cosine_scheduler(optimizer, options.lr, options.num_warmup_steps, data["train"].num_batches * options.epochs)
-        
-       
+        scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, 
+                        options.num_warmup_steps,
+                        data["train"].num_batches * (options.inmodal_warmup+options.multimodal_warmup+1),
+                        data["train"].num_batches * 32) #options.epochs)
+
+
     start_epoch = 0
     if(options.checkpoint is not None):
         if(os.path.isfile(options.checkpoint)):
@@ -144,15 +148,24 @@ def worker(rank, options, logger):
                 train(epoch, model, data, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
             else:            
                 if dataloader_update_epoch % options.loader_update_freq == 0:
+                    # data["train"].close() 
+                    # del data["train"]
+
                     # update dataloader
-                    all_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])), drop_last=False)
-                    similarities, sample_indices = get_all_similarity_distance(model, all_loader, options)    
+                    # all_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])), drop_last=False)
+                    # similarities, sample_indices = get_all_similarity_distance(model, all_loader, options)    
+                    
+                    # all_loader.close()
+                    # del all_loader
+
+                    data['train'] = reindex_dataloader(options, data['train'], range(len(data['train_set'])), drop_last=False)
+                    similarities, sample_indices = get_all_similarity_distance(model, data['train'], options)   
 
                     sorted_indices = torch.argsort(similarities, descending=True)
                     sample_indices = sample_indices[sorted_indices]
                     if options.save_index:
                         # Save the combined array to a TSV file
-                        np.savetxt('%s/%s.tsv' % (options.index_dir, options.name), 
+                        np.savetxt('%s/%s_update%d.tsv' % (options.index_dir, options.name, dataloader_update_epoch), 
                                 # np.array(np.column_stack((sample_indices.numpy(), similarities[sorted_indices].numpy())), \
                                 #         dtype=[('float_col', float), ('int_col', int)]), \
                                 np.column_stack((sample_indices.numpy(), similarities[sorted_indices].numpy())),
@@ -162,10 +175,11 @@ def worker(rank, options, logger):
                     new_indices = [idx for idx in sample_indices.tolist() if idx not in current_indices]
 
                     filtered_indices = new_indices[:int(len(similarities)*filter_ratio)]
-                    current_indices = current_indices.union(set(filtered_indices)) 
+                    current_indices = set(filtered_indices)
                     # sample_indices[filtered_indices]
-                    data["train"] = get_subset_dataloader(options, data['train_set'], list(current_indices))
-                    filter_ratio = options.update_filter_ratio
+                    
+                    data["train"] = reindex_dataloader(options, data['train'], list(current_indices))
+                    filter_ratio = min(filter_ratio+options.update_filter_ratio, options.cap_filter_ratio)
                 
                 train(epoch, model, data, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
                 dataloader_update_epoch += 1

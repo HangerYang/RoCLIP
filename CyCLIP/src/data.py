@@ -10,7 +10,7 @@ from utils.index_sampler import IndexSampler
 
 from utils.augment_text import _augment_text
 from utils.augment_image import _augment_image
-
+from math import ceil
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
     
@@ -88,8 +88,18 @@ def get_subset_dataloader(options, dataset, indices, drop_last=True):
 
     batch_size = options.batch_size
     dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = (sampler is None), num_workers = options.num_workers, pin_memory = True, sampler = sampler, drop_last = drop_last)
-    dataloader.num_samples = len(dataloader) * batch_size
+    dataloader.num_samples = len(indices) 
     dataloader.num_batches = len(dataloader)
+    return dataloader
+
+def reindex_dataloader(options, dataloader, indices, drop_last=True):
+    dataloader.sampler.indices = indices
+
+    batch_size = options.batch_size
+    dataloader.drop_last = drop_last
+    # dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = (sampler is None), num_workers = options.num_workers, pin_memory = True, sampler = sampler, drop_last = drop_last)
+    dataloader.num_samples = len(indices) 
+    dataloader.num_batches = ceil(len(indices)/batch_size)
     return dataloader
 
 def get_filtered_train_dataloader(options, processor):
