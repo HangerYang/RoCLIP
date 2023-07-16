@@ -51,12 +51,15 @@ def plot_poison_distribution(file_path, poison_category='full', filter_ratios=[0
     plt.savefig('post_pretraining_analysis/dist_%s_%s.png' \
                 %(re.search(r"/([^/]+).tsv", file_path).group(1), poison_category))
 
+
 experiments = [
                 # 'freq_3_uf_005_postlr_5e-5_lr_1e-4_',
                 'freq_3_uf_005_postlr_5e-6_lr_1e-4',
+                'freq_3_uf_005_postlr_5e-6_lr_1e-4_run2',
+                'freq_3_uf_005_postlr_5e-6_lr_1e-4_run3'
                ]
 
-updates = 10
+updates = 4
 freq = 3
 for e in experiments:
     for u in range(updates):

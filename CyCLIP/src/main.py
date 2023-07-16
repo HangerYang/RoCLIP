@@ -95,13 +95,13 @@ def worker(rank, options, logger):
             if(any(key in name for key in ["bn", "ln", "bias", "logit_scale"]) and parameter.requires_grad):
                 no_weight_decay_parameters.append(parameter)
         
-        data['train'] = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])))
+        pretrain_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])))
 
         optimizer = optim.AdamW([{"params": no_weight_decay_parameters, "weight_decay": 0}, {"params": weight_decay_parameters, "weight_decay": options.weight_decay}], lr = options.lr, betas = (options.beta1, options.beta2), eps = options.eps)
         scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, 
                         options.num_warmup_steps,
-                        data["train"].num_batches * (options.inmodal_warmup+options.multimodal_warmup+1),
-                        data["train"].num_batches * 32) #options.epochs)
+                        pretrain_loader.num_batches * (options.inmodal_warmup+options.multimodal_warmup+1),
+                        pretrain_loader.num_batches * 32) #options.epochs)
 
 
     start_epoch = 0
@@ -128,10 +128,11 @@ def worker(rank, options, logger):
     #     wandb.save(os.path.join(options.log_dir_path, "params.txt"))
     evaluate(start_epoch, model, processor, data, options)
 
-    if(data["train"] is not None):
+    if(pretrain_loader is not None):
         options.checkpoints_dir_path = os.path.join(options.log_dir_path, "checkpoints")
         os.makedirs(options.checkpoints_dir_path, exist_ok = True)
-        current_indices = set()
+        multimodal_indices = []
+        inmodal_indices = []
         scaler = GradScaler()
         
         best_loss = np.inf
@@ -143,23 +144,21 @@ def worker(rank, options, logger):
 
             start = time.time()
             if epoch <= options.inmodal_warmup:
-                train(epoch, model, data, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
+                train(epoch, model, pretrain_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
             elif epoch <= options.multimodal_warmup + options.inmodal_warmup:
-                train(epoch, model, data, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
+                train(epoch, model, pretrain_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
+                if epoch == options.multimodal_warmup + options.inmodal_warmup:
+                    del pretrain_loader
             else:            
                 if dataloader_update_epoch % options.loader_update_freq == 0:
-                    # data["train"].close() 
-                    # del data["train"]
-
                     # update dataloader
-                    # all_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])), drop_last=False)
-                    # similarities, sample_indices = get_all_similarity_distance(model, all_loader, options)    
-                    
-                    # all_loader.close()
-                    # del all_loader
+                    all_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])), drop_last=False)
+                    similarities, sample_indices = get_all_similarity_distance(model, all_loader, options)    
 
-                    data['train'] = reindex_dataloader(options, data['train'], range(len(data['train_set'])), drop_last=False)
-                    similarities, sample_indices = get_all_similarity_distance(model, data['train'], options)   
+                    del all_loader
+
+                    # data['train'] = reindex_dataloader(options, data['train'], range(len(data['train_set'])), drop_last=False)
+                    # similarities, sample_indices = get_all_similarity_distance(model, data['train'], options)   
 
                     sorted_indices = torch.argsort(similarities, descending=True)
                     sample_indices = sample_indices[sorted_indices]
@@ -172,16 +171,24 @@ def worker(rank, options, logger):
                                 delimiter='\t',
                                 fmt=['%d','%0.6f'])
                     
-                    new_indices = [idx for idx in sample_indices.tolist() if idx not in current_indices]
-
-                    filtered_indices = new_indices[:int(len(similarities)*filter_ratio)]
-                    current_indices = set(filtered_indices)
+                    # new_indices = [idx for idx in sample_indices.tolist() if idx not in current_indices]
+                    new_indices = sample_indices.tolist()
+                    # filtered_indices = new_indices[:int(len(similarities)*filter_ratio)]
+                    multimodal_indices = new_indices[:int(len(similarities)*filter_ratio)]
+                    inmodal_indices = new_indices[int(len(similarities)*filter_ratio):]
                     # sample_indices[filtered_indices]
                     
-                    data["train"] = reindex_dataloader(options, data['train'], list(current_indices))
+                    # data["train"] = reindex_dataloader(options, data['train'], list(current_indices))
                     filter_ratio = min(filter_ratio+options.update_filter_ratio, options.cap_filter_ratio)
                 
-                train(epoch, model, data, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
+                inmodal_loader = get_subset_dataloader(options, data['train_set'], inmodal_indices)
+                train(epoch, model, inmodal_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
+                del inmodal_loader
+
+                multimodal_loader = get_subset_dataloader(options, data['train_set'], multimodal_indices)
+                train(epoch, model, multimodal_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
+                del multimodal_loader
+
                 dataloader_update_epoch += 1
             end = time.time()
 

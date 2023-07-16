@@ -130,8 +130,8 @@ def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch, sa
     
     # return loss, contrastive_loss
 
-def train(epoch, model, data, optimizer, scheduler, scaler, options, memory_bank, inmodal=True):    
-    dataloader = data["train"]
+def train(epoch, model, dataloader, optimizer, scheduler, scaler, options, memory_bank, inmodal=True):    
+    # dataloader = data["train"]
 
     if(options.distributed): dataloader.sampler.set_epoch(epoch)
     model.train()
