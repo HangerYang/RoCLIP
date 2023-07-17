@@ -18,7 +18,7 @@ from torch.cuda.amp import GradScaler
 from torch.nn.parallel import DistributedDataParallel as DDP
 # from lightly.models.modules import NNMemoryBankModule
 
-
+import pandas as pd
 # print("path 1 = ")
 # print(sys.path)
 # sys.path.insert(1, '../')
@@ -105,11 +105,28 @@ def worker(rank, options, logger):
 
 
     start_epoch = 0
+    dataloader_update_epoch = 0
+    filter_ratio = options.filter_ratio 
+    multimodal_indices = []
+    inmodal_indices = []
     if(options.checkpoint is not None):
         if(os.path.isfile(options.checkpoint)):
             checkpoint = torch.load(options.checkpoint, map_location = options.device)
             start_epoch = checkpoint["epoch"]
             state_dict = checkpoint["state_dict"]
+            
+            dataloader_update_epoch = start_epoch -  options.multimodal_warmup - options.inmodal_warmup - 1
+            if (dataloader_update_epoch) >= 0:
+                prev_updates = dataloader_update_epoch // options.loader_update_freq
+                filter_ratio = min(filter_ratio + prev_updates * options.update_filter_ratio, options.cap_filter_ratio)
+                
+                index_path = ('%s/%s_update%d.tsv' % \
+                    (options.index_dir, options.name, prev_updates * options.loader_update_freq))
+                indices = pd.read_csv(index_path, sep='\t', header=None)[0].tolist()
+                multimodal_indices = indices[:int(len(indices)*filter_ratio)]
+                inmodal_indices = indices[int(len(indices)*filter_ratio):]
+                
+                dataloader_update_epoch += 1
             if(not options.distributed and next(iter(state_dict.items()))[0].startswith("module")):
                 state_dict = {key[len("module."):]: value for key, value in state_dict.items()}
             model.load_state_dict(state_dict)
@@ -131,13 +148,10 @@ def worker(rank, options, logger):
     if(pretrain_loader is not None):
         options.checkpoints_dir_path = os.path.join(options.log_dir_path, "checkpoints")
         os.makedirs(options.checkpoints_dir_path, exist_ok = True)
-        multimodal_indices = []
-        inmodal_indices = []
         scaler = GradScaler()
         
         best_loss = np.inf
-        dataloader_update_epoch = 0    
-        filter_ratio = options.filter_ratio 
+
         for epoch in range(start_epoch + 1, options.epochs + 1):
             if(options.master): 
                 logging.info(f"Starting Epoch {epoch}")
