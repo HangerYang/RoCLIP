@@ -31,6 +31,7 @@ class ImageCaptionDataset(Dataset):
             self.augment_captions = processor.process_text([_augment_text(caption) for caption in df[caption_key].tolist()])
         
         logging.debug("Loaded data")
+        del df
 
     def __len__(self):
         return len(self.images)
@@ -78,16 +79,25 @@ def get_train_dataset(options, processor):
     path = options.train_data
     if(path is None): return None
 
+    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, inmodal = options.inmodal or options.inmodal_warmup > 0, cross_aug=options.cross_aug)
+    return dataset
+
+def get_eval_dataloader(options, processor):
+    path = options.train_data
+    if(path is None): return None
+
     batch_size = options.batch_size
 
-    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, inmodal = options.inmodal or options.inmodal_warmup > 0, cross_aug=options.cross_aug)
+    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, inmodal = False, cross_aug=options.cross_aug)
+    dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = False, num_workers = options.num_workers, pin_memory = False, sampler = sampler, drop_last = drop_last)
+
     return dataset
 
 def get_subset_dataloader(options, dataset, indices, drop_last=True):
     sampler = SubsetRandomSampler(indices)
 
     batch_size = options.batch_size
-    dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = (sampler is None), num_workers = options.num_workers, pin_memory = True, sampler = sampler, drop_last = drop_last)
+    dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = (sampler is None), num_workers = options.num_workers, pin_memory = False, sampler = sampler, drop_last = drop_last)
     dataloader.num_samples = len(indices) 
     dataloader.num_batches = len(dataloader)
     return dataloader
@@ -237,6 +247,7 @@ def load(options, processor):
     data = {}
     
     data["train_set"] = get_train_dataset(options, processor)
+
     # data["filtered_train"] = get_filtered_train_dataloader(options, processor)
     data["validation"] = get_validation_dataloader(options, processor)
     data["eval_test"] = get_eval_test_dataloader(options, processor)

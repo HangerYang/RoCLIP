@@ -96,12 +96,15 @@ def worker(rank, options, logger):
                 no_weight_decay_parameters.append(parameter)
         
         pretrain_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])))
-
+        # train_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])))
+        # all_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])), drop_last=False)
         optimizer = optim.AdamW([{"params": no_weight_decay_parameters, "weight_decay": 0}, {"params": weight_decay_parameters, "weight_decay": options.weight_decay}], lr = options.lr, betas = (options.beta1, options.beta2), eps = options.eps)
         scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, 
                         options.num_warmup_steps,
                         pretrain_loader.num_batches * (options.inmodal_warmup+options.multimodal_warmup+1),
                         pretrain_loader.num_batches * 32) #options.epochs)
+                        # train_loader.num_batches * (options.inmodal_warmup+options.multimodal_warmup+1),
+                        # train_loader.num_batches * 32) #options.epoc
 
 
     start_epoch = 0
@@ -122,11 +125,15 @@ def worker(rank, options, logger):
                 
                 index_path = ('%s/%s_update%d.tsv' % \
                     (options.index_dir, options.name, prev_updates * options.loader_update_freq))
+                
                 indices = pd.read_csv(index_path, sep='\t', header=None)[0].tolist()
                 multimodal_indices = indices[:int(len(indices)*filter_ratio)]
                 inmodal_indices = indices[int(len(indices)*filter_ratio):]
                 
                 dataloader_update_epoch += 1
+                filter_ratio = min(filter_ratio + options.update_filter_ratio, options.cap_filter_ratio)
+            else:
+                dataloader_update_epoch = 0
             if(not options.distributed and next(iter(state_dict.items()))[0].startswith("module")):
                 state_dict = {key[len("module."):]: value for key, value in state_dict.items()}
             model.load_state_dict(state_dict)
@@ -146,6 +153,7 @@ def worker(rank, options, logger):
     evaluate(start_epoch, model, processor, data, options)
 
     if(pretrain_loader is not None):
+    # if(train_loader is not None):
         options.checkpoints_dir_path = os.path.join(options.log_dir_path, "checkpoints")
         os.makedirs(options.checkpoints_dir_path, exist_ok = True)
         scaler = GradScaler()
@@ -159,8 +167,10 @@ def worker(rank, options, logger):
             start = time.time()
             if epoch <= options.inmodal_warmup:
                 train(epoch, model, pretrain_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
+                # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
             elif epoch <= options.multimodal_warmup + options.inmodal_warmup:
                 train(epoch, model, pretrain_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
+                # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
                 if epoch == options.multimodal_warmup + options.inmodal_warmup:
                     del pretrain_loader
             else:            
@@ -198,10 +208,14 @@ def worker(rank, options, logger):
                 inmodal_loader = get_subset_dataloader(options, data['train_set'], inmodal_indices)
                 train(epoch, model, inmodal_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
                 del inmodal_loader
+                # train_loader.sampler.indices = inmodal_indices
+                # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
 
                 multimodal_loader = get_subset_dataloader(options, data['train_set'], multimodal_indices)
                 train(epoch, model, multimodal_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
                 del multimodal_loader
+                # train_loader.sampler.indices = multimodal_indices
+                # train(epoch, model, train_loader , optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
 
                 dataloader_update_epoch += 1
             end = time.time()
