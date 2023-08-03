@@ -109,3 +109,4 @@ for exp in exps:
         
         plt.legend()
         plt.savefig('result/zs_accuracy/%s/%s.png'%(data_type, exp))
+

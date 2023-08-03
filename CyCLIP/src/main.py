@@ -118,22 +118,23 @@ def worker(rank, options, logger):
             start_epoch = checkpoint["epoch"]
             state_dict = checkpoint["state_dict"]
             
-            dataloader_update_epoch = start_epoch -  options.multimodal_warmup - options.inmodal_warmup - 1
-            if (dataloader_update_epoch) >= 0:
-                prev_updates = dataloader_update_epoch // options.loader_update_freq
-                filter_ratio = min(filter_ratio + prev_updates * options.update_filter_ratio, options.cap_filter_ratio)
-                
-                index_path = ('%s/%s_update%d.tsv' % \
-                    (options.index_dir, options.name, prev_updates * options.loader_update_freq))
-                
-                indices = pd.read_csv(index_path, sep='\t', header=None)[0].tolist()
-                multimodal_indices = indices[:int(len(indices)*filter_ratio)]
-                inmodal_indices = indices[int(len(indices)*filter_ratio):]
-                
-                dataloader_update_epoch += 1
-                filter_ratio = min(filter_ratio + options.update_filter_ratio, options.cap_filter_ratio)
-            else:
-                dataloader_update_epoch = 0
+            if data["train_set"] is not None:
+                dataloader_update_epoch = start_epoch -  options.multimodal_warmup - options.inmodal_warmup - 1
+                if (dataloader_update_epoch) >= 0:
+                    prev_updates = dataloader_update_epoch // options.loader_update_freq
+                    filter_ratio = min(filter_ratio + prev_updates * options.update_filter_ratio, options.cap_filter_ratio)
+                    
+                    index_path = ('%s/%s_update%d.tsv' % \
+                        (options.index_dir, options.name, prev_updates * options.loader_update_freq))
+                    
+                    indices = pd.read_csv(index_path, sep='\t', header=None)[0].tolist()
+                    multimodal_indices = indices[:int(len(indices)*filter_ratio)]
+                    inmodal_indices = indices[int(len(indices)*filter_ratio):]
+                    
+                    dataloader_update_epoch += 1
+                    filter_ratio = min(filter_ratio + options.update_filter_ratio, options.cap_filter_ratio)
+                else:
+                    dataloader_update_epoch = 0
             if(not options.distributed and next(iter(state_dict.items()))[0].startswith("module")):
                 state_dict = {key[len("module."):]: value for key, value in state_dict.items()}
             model.load_state_dict(state_dict)
@@ -152,7 +153,7 @@ def worker(rank, options, logger):
     #     wandb.save(os.path.join(options.log_dir_path, "params.txt"))
     evaluate(start_epoch, model, processor, data, options)
 
-    if(pretrain_loader is not None):
+    if(data["train_set"] is not None):
     # if(train_loader is not None):
         options.checkpoints_dir_path = os.path.join(options.log_dir_path, "checkpoints")
         os.makedirs(options.checkpoints_dir_path, exist_ok = True)

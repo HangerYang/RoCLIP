@@ -10,7 +10,7 @@ poisoners = ['desk', 'palace', 'necklace', 'balloon', 'pillow',
              'orange']
 full_poison_range = poison_per_category * len(poisoners)
 
-def plot_poison_distribution(file_path, poison_category='full', filter_ratios=[0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]):
+def plot_poison_distribution(file_path, poison_category='full', filter_ratios=[0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]):
     df = pd.read_csv(file_path, sep='\t', header=None)
     mean_similarity = df[1].mean()
     orig_len = len(df)
@@ -50,20 +50,20 @@ def plot_poison_distribution(file_path, poison_category='full', filter_ratios=[0
     plt.tight_layout()
     plt.savefig('post_pretraining_analysis/dist_%s_%s.png' \
                 %(re.search(r"/([^/]+).tsv", file_path).group(1), poison_category))
+    plt.close()
 
+# experiments = [
+#                 # 'freq_3_uf_005_postlr_5e-5_lr_1e-4_',
+#                 'freq_3_uf_005_postlr_5e-6_lr_1e-4',
+#                 'freq_3_uf_005_postlr_5e-6_lr_1e-4_run2',
+#                 'freq_3_uf_005_postlr_5e-6_lr_1e-4_run3'
+#                ]
 
-experiments = [
-                # 'freq_3_uf_005_postlr_5e-5_lr_1e-4_',
-                'freq_3_uf_005_postlr_5e-6_lr_1e-4',
-                'freq_3_uf_005_postlr_5e-6_lr_1e-4_run2',
-                'freq_3_uf_005_postlr_5e-6_lr_1e-4_run3'
-               ]
-
-updates = 4
-freq = 3
-for e in experiments:
-    for u in range(updates):
-        plot_poison_distribution('indices/%s_update%d.tsv' % (e,u*freq))
+# updates = 4
+# freq = 3
+# for e in experiments:
+#     for u in range(updates):
+#         plot_poison_distribution('indices/%s_update%d.tsv' % (e,u*freq))
 
 # freq = [3]
 # updates = 3
@@ -74,6 +74,26 @@ for e in experiments:
 #             plot_poison_distribution('indices/post_cliponly_freq_%d_uf_%s_llr_update%d.tsv' % (f,lr,u*f))
 
 
+configs = [[3, '01', '1e-5'], [3, '005', '1e-5']]
+updates = 9
+for config in configs:
+    for u in range(updates):
+        plot_poison_distribution('indices/freq_%d_uf_%s_postlr_%s_lr_1e-4_ic_update%d.tsv'\
+                    % (config[0],config[1],config[2], u*config[0]))
+
+configs = [[3, '005', '5e-6']]
+updates = 9
+for config in configs:
+    for u in range(updates):
+        plot_poison_distribution('indices/freq_%d_uf_%s_postlr_%s_lr_1e-4_run3_update%d.tsv'\
+                    % (config[0],config[1],config[2], u*config[0]))
+
+configs = [[4, '01', '1e-5']]
+updates = 7
+for config in configs:
+    for u in range(updates):
+        plot_poison_distribution('indices/freq_%d_uf_%s_postlr_%s_lr_1e-4_ic_update%d.tsv'\
+                    % (config[0],config[1],config[2], u*config[0]))
 
         
         
