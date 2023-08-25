@@ -165,11 +165,11 @@ def get_linear_probe_metrics(model, train_dataloader, test_dataloader, options):
 
     classifier = LogisticRegression(input_dim = input_dim, output_dim = output_dim).to(options.device)
     optimizer = optim.AdamW([{"params": [parameter for name, parameter in classifier.named_parameters() if(("bias" in name) and parameter.requires_grad)], "weight_decay": 0}, {"params": [parameter for name, parameter in classifier.named_parameters() if(("bias" not in name) and parameter.requires_grad)], "weight_decay": 0.01}])
-    # scheduler = cosine_scheduler(optimizer, 0.005, 0, len(train_dataloader) * options.linear_probe_num_epochs)
-    scheduler = cosine_scheduler(optimizer, 0.005, 0.005, 
-                        0,
-                        0,
-                        len(train_dataloader) * options.linear_probe_num_epochs) 
+    scheduler = cosine_scheduler(optimizer, 0.005, 0.005, 0, len(train_dataloader) * options.linear_probe_num_epochs)
+    # scheduler = cosine_scheduler(optimizer, 0.005, 0.005, 
+    #                     0,
+    #                     0,
+    #                     len(train_dataloader) * options.linear_probe_num_epochs) 
     criterion = nn.CrossEntropyLoss().to(options.device)
     
     pbar = tqdm(range(options.linear_probe_num_epochs))
