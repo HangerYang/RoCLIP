@@ -1,11 +1,11 @@
 #!/bin/bash
 
-runNames=('freq_3_uf_005_postlr_1e-5_lr_1e-4_ic' 'freq_4_uf_01_postlr_1e-5_lr_1e-4_ic')
-lpName='1M_every_poison_baseline_eval'
+runNames='trial'
+lpName='trial_eval'
 device=3
 
-beginEpoch=31
-endEpoch=31
+beginEpoch=32
+endEpoch=32
 batch_size=256
 
 # clean similarity args
@@ -13,7 +13,7 @@ cleanDataPath='../short_100K_clean.csv'
 validationPath='../valid_temp.csv'
 
 # LP args
-eval_data_types=('CIFAR10' 'CIFAR100' 'ImageNet1K') # 'caltech101' 'flowers_102' 'food_101')
+eval_data_types=('CIFAR10' 'CIFAR100') # 'caltech101' 'flowers_102' 'food_101')
 # eval_data_types='CIFAR10'
 
 for runName in "${runNames[@]}"
@@ -28,8 +28,8 @@ do
 done
 
 # poison eval args
-dataset='imagenet100'
-poison_path='../ablation_1000000_100_info.csv'
+dataset='imagenet30'
+poison_path='../100K_30_info.csv'
 
 for runName in "${runNames[@]}"
 do

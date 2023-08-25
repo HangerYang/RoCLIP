@@ -132,7 +132,9 @@ def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch, sa
 
 def train(epoch, model, dataloader, optimizer, scheduler, scaler, options, memory_bank, inmodal=True):    
     # dataloader = data["train"]
-
+    lr_adjust =  (epoch == (options.inmodal_warmup+options.multimodal_warmup))
+    if lr_adjust:
+        logging.info("We are adjusting for this!!")
     if(options.distributed): dataloader.sampler.set_epoch(epoch)
     model.train()
     criterion = nn.CrossEntropyLoss().to(options.device)
@@ -144,21 +146,23 @@ def train(epoch, model, dataloader, optimizer, scheduler, scaler, options, memor
     # sample_indices = []
     start = time.time()
     logging.info(f"Num samples: {dataloader.num_samples}, Num_batches: {dataloader.num_batches}")
+    if (inmodal):
+        logging.info("In-modal training")
+    else:
+        logging.info("Cross-modal training")
     for index, batch in enumerate(dataloader): 
         step = dataloader.num_batches * epoch + index
-        scheduler(step)
+        scheduler(step, lr_adjust = lr_adjust)
 
         optimizer.zero_grad()
         
         input_ids, attention_mask, pixel_values = batch["input_ids"][0].to(options.device, non_blocking = True), batch["attention_mask"][0].to(options.device, non_blocking = True), batch["pixel_values"][0].to(options.device, non_blocking = True)
         if(inmodal):
             augmented_input_ids, augmented_attention_mask, augmented_pixel_values = batch["input_ids"][1].to(options.device, non_blocking = True), batch["attention_mask"][1].to(options.device, non_blocking = True), batch["pixel_values"][1].to(options.device, non_blocking = True)
-        sample_index = batch["index"]
-
-        if(inmodal):
             input_ids = torch.cat([input_ids, augmented_input_ids])
             attention_mask = torch.cat([attention_mask, augmented_attention_mask])
             pixel_values = torch.cat([pixel_values, augmented_pixel_values])
+        sample_index = batch["index"]
         # else:
         #     input_ids, attention_mask, pixel_values, sample_index = batch["input_ids"].to(options.device, non_blocking = True), batch["attention_mask"].to(options.device, non_blocking = True), batch["pixel_values"].to(options.device, non_blocking = True), batch["index"]
         outputs = model(input_ids = input_ids, attention_mask = attention_mask, pixel_values = pixel_values)
@@ -181,7 +185,7 @@ def train(epoch, model, dataloader, optimizer, scheduler, scaler, options, memor
             num_samples = (index + 1) * len(input_ids) * options.num_devices
             dataloader_num_samples = dataloader.num_samples
 
-            logging.info(f"Train Epoch: {epoch:02d} [{num_samples}/{dataloader_num_samples} ({100.0 * (index + 1) / dataloader.num_batches:.0f}%)]\tUnsupervised Loss: {loss.item():.6f}\tTime taken {end - start:.3f}\tLearning Rate: {optimizer.param_groups[0]['lr']:.9f}")
+            logging.info(f"Train Epoch: {epoch:02d} [{num_samples}/{dataloader_num_samples} ({100.0 * (index + 1) / dataloader.num_batches:.0f}%)]\tLoss: {loss.item():.6f}\tTime taken {end - start:.3f}\tLearning Rate: {optimizer.param_groups[0]['lr']:.9f}")
             metrics = {"loss": loss.item(), "contrastive_loss": contrastive_loss.item(), "time": end - start, "lr": optimizer.param_groups[0]["lr"]}
             if(options.wandb):
                 for key, value in metrics.items():

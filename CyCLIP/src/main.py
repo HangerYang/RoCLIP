@@ -99,13 +99,13 @@ def worker(rank, options, logger):
         # train_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])))
         # all_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])), drop_last=False)
         optimizer = optim.AdamW([{"params": no_weight_decay_parameters, "weight_decay": 0}, {"params": weight_decay_parameters, "weight_decay": options.weight_decay}], lr = options.lr, betas = (options.beta1, options.beta2), eps = options.eps)
-        scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, 
-                        options.num_warmup_steps,
-                        pretrain_loader.num_batches * (options.inmodal_warmup+options.multimodal_warmup+1),
-                        pretrain_loader.num_batches * 32) #options.epochs)
-                        # train_loader.num_batches * (options.inmodal_warmup+options.multimodal_warmup+1),
-                        # train_loader.num_batches * 32) #options.epoc
-
+        # scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, 
+        #                 options.num_warmup_steps,
+        #                 pretrain_loader.num_batches * (options.inmodal_warmup+options.multimodal_warmup+1),
+        #                 pretrain_loader.num_batches * 32) #options.epochs)
+        #                 # train_loader.num_batches * (options.inmodal_warmup+options.multimodal_warmup+1),
+        #                 # train_loader.num_batches * 32) #options.epoc
+        scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, options.num_warmup_steps, pretrain_loader.num_batches * options.epochs)
 
     start_epoch = 0
     dataloader_update_epoch = 0
@@ -119,7 +119,7 @@ def worker(rank, options, logger):
             state_dict = checkpoint["state_dict"]
             
             if data["train_set"] is not None:
-                dataloader_update_epoch = start_epoch -  options.multimodal_warmup - options.inmodal_warmup - 1
+                dataloader_update_epoch = start_epoch - options.multimodal_warmup - options.inmodal_warmup - 1
                 if (dataloader_update_epoch) >= 0:
                     prev_updates = dataloader_update_epoch // options.loader_update_freq
                     filter_ratio = min(filter_ratio + prev_updates * options.update_filter_ratio, options.cap_filter_ratio)
@@ -167,9 +167,11 @@ def worker(rank, options, logger):
 
             start = time.time()
             if epoch <= options.inmodal_warmup:
+                logging.info("warm up in-modal training")
                 train(epoch, model, pretrain_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
                 # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
             elif epoch <= options.multimodal_warmup + options.inmodal_warmup:
+                logging.info("warm up cross-modal training")
                 train(epoch, model, pretrain_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
                 # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
                 if epoch == options.multimodal_warmup + options.inmodal_warmup:
