@@ -7,6 +7,7 @@ import torch.optim as optim
 from tqdm import tqdm    
 from .scheduler import cosine_scheduler
 from sklearn.metrics.pairwise import cosine_similarity
+import torch.distributed as dist
 
 def get_validation_metrics(model, dataloader, options):
     logging.info("Started validating")
@@ -281,8 +282,8 @@ def get_all_similarity_distance(model, dataloader, options):
         for batch in tqdm(dataloader):
             # if(options.inmodal):
             input_ids, attention_mask, pixel_values = batch["input_ids"][0].to(options.device, non_blocking = True), batch["attention_mask"][0].to(options.device, non_blocking = True), batch["pixel_values"][0].to(options.device, non_blocking = True)
-            sample_index = batch["index"]
-            sample_indices.append(sample_index)
+            sample_index = torch.tensor(batch["index"]).to(options.device, non_blocking = True)
+            
             # augmented_input_ids, augmented_attention_mask, augmented_pixel_values = batch["input_ids"][1].to(options.device, non_blocking = True), batch["attention_mask"][1].to(options.device, non_blocking = True), batch["pixel_values"][1].to(options.device, non_blocking = True)
             # input_ids = torch.cat([input_ids, augmented_input_ids])
             # attention_mask = torch.cat([attention_mask, augmented_attention_mask])
@@ -290,10 +291,34 @@ def get_all_similarity_distance(model, dataloader, options):
             # else:
             #     input_ids, attention_mask, pixel_values = batch["input_ids"].to(options.device, non_blocking = True), batch["attention_mask"].to(options.device, non_blocking = True), batch["pixel_values"].to(options.device, non_blocking = True)
             outputs = model(input_ids = input_ids, attention_mask = attention_mask, pixel_values = pixel_values)
-            umodel = model.module if(options.distributed) else model
-            a = outputs.image_embeds.cpu().numpy()
-            b = outputs.text_embeds.cpu().numpy()
+            # umodel = model.module if(options.distributed) else model
+            image_embeds = outputs.image_embeds
+            text_embeds = outputs.text_embeds
+
+            if(options.distributed):
+                gathered_image_embeds = [torch.zeros_like(image_embeds) for _ in range(options.num_devices)]
+                gathered_text_embeds = [torch.zeros_like(text_embeds) for _ in range(options.num_devices)]
+            
+                dist.all_gather(gathered_image_embeds, image_embeds)
+                dist.all_gather(gathered_text_embeds, text_embeds)
+            
+                image_embeds = torch.cat(gathered_image_embeds[:options.rank] + [image_embeds] + gathered_image_embeds[options.rank + 1:])
+                text_embeds  = torch.cat(gathered_text_embeds[:options.rank]+ [text_embeds] + gathered_text_embeds[options.rank + 1:])
+
+                gathered_sample_indices = [torch.zeros_like(sample_index) for _ in range(options.num_devices)]
+                dist.all_gather(gathered_sample_indices, sample_index)
+                # print("sample_index", sample_index.shape)
+                # print("gathered_sample_indices length", len(gathered_sample_indices))
+                # print("rank: ", options.rank, "gathered_sample_indices 0 type", type(gathered_sample_indices[0]))
+                # print("rank: ", options.rank, "gathered_sample_indices 1 type", type(gathered_sample_indices[1]))
+                sample_index = torch.cat(gathered_sample_indices[:options.rank]+ [sample_index] + gathered_sample_indices[options.rank + 1:])
+
+            a = image_embeds.cpu().numpy()
+            b = text_embeds.cpu().numpy()
 
             similarity_matrix = np.diagonal(cosine_similarity(a, b))
             total_similarity_distance = np.concatenate((total_similarity_distance, similarity_matrix), 0)
+
+            sample_indices.append(sample_index)
+
     return torch.from_numpy(total_similarity_distance), torch.cat(sample_indices, 0)
