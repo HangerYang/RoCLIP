@@ -37,12 +37,13 @@ from .memory_bank import NNMemoryBankModule
 from .evaluate import get_all_similarity_distance
 mp.set_start_method("spawn", force = True)
 warnings.filterwarnings("ignore")
+import pdb
 
 def worker(rank, options, logger):
     options.rank = rank
     options.master = rank == 0
     
-    
+    print("Rank: ", rank)
     set_logger(rank = rank, logger = logger, distributed = options.distributed)
 
     if(options.device == "cuda"):
@@ -62,7 +63,7 @@ def worker(rank, options, logger):
         dist.init_process_group(backend = options.distributed_backend, init_method = options.distributed_init_method, world_size = options.num_devices, rank = options.rank)
     
     options.batch_size = options.batch_size // options.num_devices
-
+    print("batch_size: ", options.batch_size)
     model, processor = load_model(name = options.model_name, pretrained = options.pretrained)
     caption_memory_bank = None
     if options.memory_bank:
@@ -94,8 +95,9 @@ def worker(rank, options, logger):
                 
             if(any(key in name for key in ["bn", "ln", "bias", "logit_scale"]) and parameter.requires_grad):
                 no_weight_decay_parameters.append(parameter)
-        
+          
         pretrain_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])))
+        print("Pretrain loader number of samples: ", pretrain_loader.num_samples)
         # train_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])))
         # all_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])), drop_last=False)
         optimizer = optim.AdamW([{"params": no_weight_decay_parameters, "weight_decay": 0}, {"params": weight_decay_parameters, "weight_decay": options.weight_decay}], lr = options.lr, betas = (options.beta1, options.beta2), eps = options.eps)
@@ -180,8 +182,11 @@ def worker(rank, options, logger):
                 if dataloader_update_epoch % options.loader_update_freq == 0:
                     # update dataloader
                     all_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])), drop_last=False)
+                    print("All loader number of samples: ", all_loader.num_samples)
+                    # pdb.set_trace()
                     similarities, sample_indices = get_all_similarity_distance(model, all_loader, options)    
 
+                    print('Similarity shape', similarities.shape)
                     del all_loader
 
                     # data['train'] = reindex_dataloader(options, data['train'], range(len(data['train_set'])), drop_last=False)
@@ -189,12 +194,12 @@ def worker(rank, options, logger):
 
                     sorted_indices = torch.argsort(similarities, descending=True)
                     sample_indices = sample_indices[sorted_indices]
-                    if options.save_index:
+                    if options.save_index and options.master:
                         # Save the combined array to a TSV file
                         np.savetxt('%s/%s_update%d.tsv' % (options.index_dir, options.name, dataloader_update_epoch), 
                                 # np.array(np.column_stack((sample_indices.numpy(), similarities[sorted_indices].numpy())), \
                                 #         dtype=[('float_col', float), ('int_col', int)]), \
-                                np.column_stack((sample_indices.numpy(), similarities[sorted_indices].numpy())),
+                                np.column_stack((sample_indices.cpu().numpy(), similarities[sorted_indices].numpy())),
                                 delimiter='\t',
                                 fmt=['%d','%0.6f'])
                     
@@ -209,12 +214,14 @@ def worker(rank, options, logger):
                     filter_ratio = min(filter_ratio+options.update_filter_ratio, options.cap_filter_ratio)
                 
                 inmodal_loader = get_subset_dataloader(options, data['train_set'], inmodal_indices)
+                print("Inmodal loader number of samples: ", inmodal_loader.num_samples)
                 train(epoch, model, inmodal_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
                 del inmodal_loader
                 # train_loader.sampler.indices = inmodal_indices
                 # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
 
                 multimodal_loader = get_subset_dataloader(options, data['train_set'], multimodal_indices)
+                print("Multimodal loader number of samples: ", multimodal_loader.num_samples)
                 train(epoch, model, multimodal_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
                 del multimodal_loader
                 # train_loader.sampler.indices = multimodal_indices

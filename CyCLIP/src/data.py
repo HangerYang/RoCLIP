@@ -7,6 +7,7 @@ from PIL import Image, ImageFile
 from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 from torch.utils.data.distributed import DistributedSampler
 from utils.index_sampler import IndexSampler
+from src.samplers import DistributedSubsetSampler
 
 from utils.augment_text import _augment_text
 from utils.augment_image import _augment_image
@@ -79,7 +80,7 @@ def get_train_dataset(options, processor):
     path = options.train_data
     if(path is None): return None
 
-    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, inmodal = options.inmodal or options.inmodal_warmup > 0, cross_aug=options.cross_aug)
+    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, inmodal = options.inmodal or options.filter, cross_aug=options.cross_aug)
     return dataset
 
 def get_eval_dataloader(options, processor):
@@ -94,11 +95,20 @@ def get_eval_dataloader(options, processor):
     return dataset
 
 def get_subset_dataloader(options, dataset, indices, drop_last=True):
-    sampler = SubsetRandomSampler(indices)
-
     batch_size = options.batch_size
+
+    if not options.distributed:
+        sampler = SubsetRandomSampler(indices)
+    else:
+        sampler = DistributedSubsetSampler(indices)
+    
     dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = (sampler is None), num_workers = options.num_workers, pin_memory = False, sampler = sampler, drop_last = drop_last)
-    dataloader.num_samples = len(indices) 
+    dataloader.num_samples = len(dataloader) * batch_size
+    # if drop_last:
+    #     dataloader.num_batches = len(indices) // batch_size
+    # else:
+    #     dataloader.num_batches = ceil(len(indices)/batch_size)
+     
     dataloader.num_batches = len(dataloader)
     return dataloader
 
