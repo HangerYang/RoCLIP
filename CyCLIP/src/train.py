@@ -146,12 +146,11 @@ def train(epoch, model, dataloader, optimizer, scheduler, scaler, options, memor
     # sample_indices = []
     start = time.time()
     logging.info(f"Num samples: {dataloader.num_samples}, Num_batches: {dataloader.num_batches}")
-    if (inmodal):
-        logging.info("In-modal training")
-    else:
-        logging.info("Cross-modal training")
     for index, batch in enumerate(dataloader): 
-        step = dataloader.num_batches * epoch + index
+        if epoch > (options.inmodal_warmup + options.multimodal_warmup):
+            step = options.train_num_batches * (epoch - (options.inmodal_warmup + options.multimodal_warmup)) + index
+        else:
+            step = dataloader.num_batches * epoch + index
         scheduler(step, lr_adjust = lr_adjust)
 
         optimizer.zero_grad()

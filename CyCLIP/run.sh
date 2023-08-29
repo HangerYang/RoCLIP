@@ -1,11 +1,11 @@
 #!/bin/bash
 
-runNames='trial_1M'
-lpName='trial_1M_eval'
-device=3
+runNames='trial_1M_aug_lr'
+lpName='trial_1M_aug_lr_eval'
+device=1
 
-beginEpoch=7
-endEpoch=7
+beginEpoch=21
+endEpoch=21
 batch_size=256
 
 # clean similarity args
@@ -47,10 +47,10 @@ do
             eval_test_data_dir="data/$eval_data_type/test"
 
             # get LP accuracy
-            python -m src.main --name $lpName --eval_data_type $eval_data_type --eval_train_data_dir $eval_train_data_dir --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath --linear_probe --linear_probe_batch_size $batch_size
-            wait
-            cp "logs/$lpName/output.log" "logs/$runName/LP_output_logs/$eval_data_type/output_epoch$i.log" 
-            wait
+            # python -m src.main --name $lpName --eval_data_type $eval_data_type --eval_train_data_dir $eval_train_data_dir --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath --linear_probe --linear_probe_batch_size $batch_size
+            # wait
+            # cp "logs/$lpName/output.log" "logs/$runName/LP_output_logs/$eval_data_type/output_epoch$i.log" 
+            # wait
 
             # get ZS accuracy
             python -m src.main --name $lpName --eval_data_type $eval_data_type  --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath 

@@ -36,7 +36,7 @@ def parse_args():
     parser.add_argument("--inmodal", action = "store_true", default = False, help = "Inmodality Training")
     parser.add_argument("--epochs", type = int, default = 32, help = "Number of train epochs")
     parser.add_argument("--batch_size", type = int, default = 128, help = "Batch size")
-    parser.add_argument("--lr", type = float, default = 1e-4, help = "Learning rate")
+    parser.add_argument("--lr", type = float, default = 0.0005, help = "Learning rate")
     parser.add_argument("--post_lr", type = float, default = 1e-5, help = "Learning rate")
     parser.add_argument("--beta1", type = float, default = 0.9, help = "Adam momentum factor (Beta 1)")
     parser.add_argument("--beta2", type = float, default = 0.999, help = "Adam rmsprop factor (Beta 2)")

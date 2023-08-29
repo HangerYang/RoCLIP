@@ -31,7 +31,7 @@ from .evaluate import evaluate
 from .data import load as load_data
 from .data import get_subset_dataloader, reindex_dataloader
 from .parser import parse_args
-from .scheduler import cosine_scheduler
+from .scheduler import cosine_scheduler, calcualte_num_batches
 from .logger import get_logger, set_logger
 from .memory_bank import NNMemoryBankModule
 from .evaluate import get_all_similarity_distance
@@ -107,7 +107,11 @@ def worker(rank, options, logger):
         #                 pretrain_loader.num_batches * 32) #options.epochs)
         #                 # train_loader.num_batches * (options.inmodal_warmup+options.multimodal_warmup+1),
         #                 # train_loader.num_batches * 32) #options.epoc
-        scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, options.num_warmup_steps, pretrain_loader.num_batches * options.epochs)
+        pretrain_scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, options.num_warmup_steps / 6, pretrain_loader.num_batches * options.inmodal_warmup)
+        total_train_steps = calcualte_num_batches(options, pretrain_loader.num_batches)
+        options.train_num_batches = total_train_steps // (options.epochs - options.inmodal_warmup - options.multimodal_warmup)
+        inmodal_scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, options.num_warmup_steps, total_train_steps)
+        crossmodal_scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, options.num_warmup_steps, total_train_steps)
 
     start_epoch = 0
     dataloader_update_epoch = 0
@@ -170,11 +174,11 @@ def worker(rank, options, logger):
             start = time.time()
             if epoch <= options.inmodal_warmup:
                 logging.info("warm up in-modal training")
-                train(epoch, model, pretrain_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
+                train(epoch, model, pretrain_loader, optimizer, pretrain_scheduler, scaler, options, caption_memory_bank, inmodal=True)
                 # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
             elif epoch <= options.multimodal_warmup + options.inmodal_warmup:
                 logging.info("warm up cross-modal training")
-                train(epoch, model, pretrain_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
+                train(epoch, model, pretrain_loader, optimizer, pretrain_scheduler, scaler, options, caption_memory_bank, inmodal=False)
                 # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
                 if epoch == options.multimodal_warmup + options.inmodal_warmup:
                     del pretrain_loader
@@ -196,7 +200,7 @@ def worker(rank, options, logger):
                     sample_indices = sample_indices[sorted_indices]
                     if options.save_index and options.master:
                         # Save the combined array to a TSV file
-                        np.savetxt('%s/%s_update%d.tsv' % (options.index_dir, options.name, dataloader_update_epoch), 
+                        np.savetxt('%s/%s_update%d.tsv' % (options.index_dir, options.name, epoch), 
                                 # np.array(np.column_stack((sample_indices.numpy(), similarities[sorted_indices].numpy())), \
                                 #         dtype=[('float_col', float), ('int_col', int)]), \
                                 np.column_stack((sample_indices.cpu().numpy(), similarities[sorted_indices].numpy())),
@@ -215,14 +219,14 @@ def worker(rank, options, logger):
                 
                 inmodal_loader = get_subset_dataloader(options, data['train_set'], inmodal_indices)
                 print("Inmodal loader number of samples: ", inmodal_loader.num_samples)
-                train(epoch, model, inmodal_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
+                train(epoch, model, inmodal_loader, optimizer, inmodal_scheduler, scaler, options, caption_memory_bank, inmodal=True)
                 del inmodal_loader
                 # train_loader.sampler.indices = inmodal_indices
                 # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
 
                 multimodal_loader = get_subset_dataloader(options, data['train_set'], multimodal_indices)
                 print("Multimodal loader number of samples: ", multimodal_loader.num_samples)
-                train(epoch, model, multimodal_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
+                train(epoch, model, multimodal_loader, optimizer, crossmodal_scheduler, scaler, options, caption_memory_bank, inmodal=False)
                 del multimodal_loader
                 # train_loader.sampler.indices = multimodal_indices
                 # train(epoch, model, train_loader , optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
