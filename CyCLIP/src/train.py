@@ -10,15 +10,12 @@ import numpy as np
 
 
 def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch, sample_index=None, inmodal=True):  
-    # if(inmodal):
+    if options.memory_bank:
+        image_memory_bank, text_memory_bank = memory_bank[0], memory_bank[1]
     augmented_image_embeds, augmented_image_embeds_2 = outputs.image_embeds[:len(outputs.image_embeds) // 2], outputs.image_embeds[len(outputs.image_embeds) // 2:]
     augmented_text_embeds, augmented_text_embeds_2 = outputs.text_embeds[:len(outputs.text_embeds) // 2], outputs.text_embeds[len(outputs.text_embeds) // 2:]
-    # else:
-    #     image_embeds = outputs.image_embeds
-    #     text_embeds = outputs.text_embeds
    
     if(options.distributed):
-        # if(inmodal):
         augmented_gathered_image_embeds = [torch.zeros_like(augmented_image_embeds) for _ in range(options.num_devices)]
         augmented_gathered_text_embeds = [torch.zeros_like(augmented_text_embeds) for _ in range(options.num_devices)]
         augmented_gathered_image_embeds_2 = [torch.zeros_like(augmented_image_embeds_2) for _ in range(options.num_devices)]
@@ -45,10 +42,17 @@ def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch, sa
         #     text_embeds  = torch.cat(gathered_text_embeds[:options.rank]+ [text_embeds] + gathered_text_embeds[options.rank + 1:])
     
 
-    if inmodal:
+    if inmodal and options.memory_bank:
+        augmented_image_embeds_nn = image_memory_bank(augmented_image_embeds, update=True) 
+        augmented_text_embeds_nn = text_memory_bank(augmented_text_embeds, update=True)
+        logits_image_per_augmented_image = umodel.logit_scale.exp() * augmented_image_embeds_2 @ augmented_image_embeds_nn.t()
+        logits_text_per_augmented_text = umodel.logit_scale.exp() * augmented_text_embeds_2 @ augmented_text_embeds_nn.t()
+        batch_size = len(logits_image_per_augmented_image)
+    elif inmodal:
         logits_image_per_augmented_image = umodel.logit_scale.exp() * augmented_image_embeds_2 @ augmented_image_embeds.t()
         logits_text_per_augmented_text = umodel.logit_scale.exp() * augmented_text_embeds_2 @ augmented_text_embeds.t()
         batch_size = len(logits_image_per_augmented_image)
+
     #change this when doing ablation study with no augmentation
     else:
         logits_text_per_image = umodel.logit_scale.exp() * augmented_image_embeds @ augmented_text_embeds_2.t()
@@ -93,7 +97,6 @@ def get_loss(umodel, outputs, criterion, options, memory_bank, current_epoch, sa
     return loss, contrastive_loss
 
 def train(epoch, model, dataloader, optimizer, scheduler, scaler, options, memory_bank, inmodal=True):    
-    # dataloader = data["train"]
     lr_adjust =  (epoch == (options.inmodal_warmup+options.multimodal_warmup))
     if lr_adjust:
         logging.info("We are adjusting for this!!")

@@ -70,6 +70,9 @@ def worker(rank, options, logger):
         logging.info("memory bank online")
         caption_memory_bank = NNMemoryBankModule(size=options.memory_bank_size)
         caption_memory_bank.to(options.device)
+        image_memory_bank = NNMemoryBankModule(size=options.memory_bank_size)
+        image_memory_bank.to(options.device)
+        memory_bank =  (caption_memory_bank, image_memory_bank)
 
 
     if(options.device == "cpu"):
@@ -84,7 +87,6 @@ def worker(rank, options, logger):
     load_end = time.time()
     logging.info("data loading time: {}".format(str(load_end - load_start)))
     optimizer = None
-    scheduler = None
     if(data["train_set"] is not None):        
         weight_decay_parameters = []
         no_weight_decay_parameters = []
@@ -174,11 +176,11 @@ def worker(rank, options, logger):
             start = time.time()
             if epoch <= options.inmodal_warmup:
                 logging.info("warm up in-modal training")
-                train(epoch, model, pretrain_loader, optimizer, pretrain_scheduler, scaler, options, caption_memory_bank, inmodal=True)
-                # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
+                train(epoch, model, pretrain_loader, optimizer, pretrain_scheduler, scaler, options, memory_bank, inmodal=True)
+                # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, memory_bank, inmodal=True)
             elif epoch <= options.multimodal_warmup + options.inmodal_warmup:
                 logging.info("warm up cross-modal training")
-                train(epoch, model, pretrain_loader, optimizer, pretrain_scheduler, scaler, options, caption_memory_bank, inmodal=False)
+                train(epoch, model, pretrain_loader, optimizer, pretrain_scheduler, scaler, options, memory_bank, inmodal=False)
                 # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
                 if epoch == options.multimodal_warmup + options.inmodal_warmup:
                     del pretrain_loader
