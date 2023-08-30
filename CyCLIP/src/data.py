@@ -30,6 +30,7 @@ class ImageCaptionDataset(Dataset):
         self.inmodal = inmodal
         if(inmodal or cross_aug):
             self.augment_captions = processor.process_text([_augment_text(caption) for caption in df[caption_key].tolist()])
+            self.augment_captions_2 = processor.process_text([_augment_text(caption) for caption in df[caption_key].tolist()])
         
         logging.debug("Loaded data")
         del df
@@ -40,15 +41,15 @@ class ImageCaptionDataset(Dataset):
     def __getitem__(self, idx):
         item = {}
         
-        if(self.cross_aug):
-            item["input_ids"] = self.augment_captions["input_ids"][idx]
-            item["attention_mask"] = self.augment_captions["attention_mask"][idx]
-            item["pixel_values"] =  self.processor.process_image(_augment_image(os.path.join(self.root, self.images[idx])))
-            item["index"] = idx
-        elif(self.inmodal):
-            item["input_ids"] = self.captions["input_ids"][idx], self.augment_captions["input_ids"][idx]
-            item["attention_mask"] = self.captions["attention_mask"][idx], self.augment_captions["attention_mask"][idx]
-            item["pixel_values"] = self.processor.process_image(Image.open(os.path.join(self.root, self.images[idx]))), self.processor.process_image(_augment_image(os.path.join(self.root, self.images[idx])))
+        # if(self.cross_aug):
+        #     item["input_ids"] = self.augment_captions["input_ids"][idx]
+        #     item["attention_mask"] = self.augment_captions["attention_mask"][idx]
+        #     item["pixel_values"] =  self.processor.process_image(_augment_image(os.path.join(self.root, self.images[idx])))
+        #     item["index"] = idx
+        if(self.inmodal or self.cross_aug):
+            item["input_ids"] = self.augment_captions["input_ids"][idx], self.augment_captions_2["input_ids"][idx]
+            item["attention_mask"] = self.augment_captions["attention_mask"][idx], self.augment_captions_2["attention_mask"][idx]
+            item["pixel_values"] = self.processor.process_image(_augment_image(os.path.join(self.root, self.images[idx]))), self.processor.process_image(_augment_image(os.path.join(self.root, self.images[idx])))
             item["index"] = idx
         else:  
             item["input_ids"] = self.captions["input_ids"][idx]
