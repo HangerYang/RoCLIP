@@ -65,7 +65,7 @@ def worker(rank, options, logger):
     options.batch_size = options.batch_size // options.num_devices
     print("batch_size: ", options.batch_size)
     model, processor = load_model(name = options.model_name, pretrained = options.pretrained)
-    caption_memory_bank = None
+    memory_bank = None
     if options.memory_bank:
         logging.info("memory bank online")
         caption_memory_bank = NNMemoryBankModule(size=options.memory_bank_size)
@@ -221,14 +221,14 @@ def worker(rank, options, logger):
                 
                 inmodal_loader = get_subset_dataloader(options, data['train_set'], inmodal_indices)
                 print("Inmodal loader number of samples: ", inmodal_loader.num_samples)
-                train(epoch, model, inmodal_loader, optimizer, inmodal_scheduler, scaler, options, caption_memory_bank, inmodal=True)
+                train(epoch, model, inmodal_loader, optimizer, inmodal_scheduler, scaler, options, memory_bank, inmodal=True)
                 del inmodal_loader
                 # train_loader.sampler.indices = inmodal_indices
                 # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=True)
 
                 multimodal_loader = get_subset_dataloader(options, data['train_set'], multimodal_indices)
                 print("Multimodal loader number of samples: ", multimodal_loader.num_samples)
-                train(epoch, model, multimodal_loader, optimizer, crossmodal_scheduler, scaler, options, caption_memory_bank, inmodal=False)
+                train(epoch, model, multimodal_loader, optimizer, crossmodal_scheduler, scaler, options, memory_bank, inmodal=False)
                 del multimodal_loader
                 # train_loader.sampler.indices = multimodal_indices
                 # train(epoch, model, train_loader , optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)

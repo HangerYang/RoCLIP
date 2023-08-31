@@ -119,6 +119,7 @@ def train(epoch, model, dataloader, optimizer, scheduler, scaler, options, memor
         scheduler(step, lr_adjust = lr_adjust)
 
         optimizer.zero_grad()
+        input_ids, attention_mask, pixel_values = batch["input_ids"][0].to(options.device, non_blocking = True), batch["attention_mask"][0].to(options.device, non_blocking = True), batch["pixel_values"][0].to(options.device, non_blocking = True)
         augmented_input_ids, augmented_attention_mask, augmented_pixel_values = batch["input_ids"][1].to(options.device, non_blocking = True), batch["attention_mask"][1].to(options.device, non_blocking = True), batch["pixel_values"][1].to(options.device, non_blocking = True)
         input_ids = torch.cat([input_ids, augmented_input_ids])
         attention_mask = torch.cat([attention_mask, augmented_attention_mask])
