@@ -102,18 +102,17 @@ def worker(rank, options, logger):
         print("Pretrain loader number of samples: ", pretrain_loader.num_samples)
         # train_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])))
         # all_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])), drop_last=False)
-        optimizer = optim.AdamW([{"params": no_weight_decay_parameters, "weight_decay": 0}, {"params": weight_decay_parameters, "weight_decay": options.weight_decay}], lr = options.lr, betas = (options.beta1, options.beta2), eps = options.eps)
+        optimizer = optim.AdamW([{"params": no_weight_decay_parameters, "weight_decay": 0}, {"params": weight_decay_parameters, "weight_decay": options.weight_decay}], lr = options.in_lr, betas = (options.beta1, options.beta2), eps = options.eps)
         # scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, 
         #                 options.num_warmup_steps,
         #                 pretrain_loader.num_batches * (options.inmodal_warmup+options.multimodal_warmup+1),
         #                 pretrain_loader.num_batches * 32) #options.epochs)
         #                 # train_loader.num_batches * (options.inmodal_warmup+options.multimodal_warmup+1),
         #                 # train_loader.num_batches * 32) #options.epoc
-        pretrain_scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, options.num_warmup_steps / 6, pretrain_loader.num_batches * options.inmodal_warmup)
         total_train_steps = calcualte_num_batches(options, pretrain_loader.num_batches)
         options.train_num_batches = total_train_steps // (options.epochs - options.inmodal_warmup - options.multimodal_warmup)
-        inmodal_scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, options.num_warmup_steps, total_train_steps)
-        crossmodal_scheduler = cosine_scheduler(optimizer, options.lr, options.post_lr, options.num_warmup_steps, total_train_steps)
+        inmodal_scheduler = cosine_scheduler(optimizer, options.in_lr, options.filter_lr, options.num_warmup_steps, total_train_steps)
+        crossmodal_scheduler = cosine_scheduler(optimizer, options.cross_lr, options.filter_lr, options.num_warmup_steps, total_train_steps)
 
     start_epoch = 0
     dataloader_update_epoch = 0
@@ -176,11 +175,11 @@ def worker(rank, options, logger):
             start = time.time()
             if epoch <= options.inmodal_warmup:
                 logging.info("warm up in-modal training")
-                train(epoch, model, pretrain_loader, optimizer, pretrain_scheduler, scaler, options, memory_bank, inmodal=True)
+                train(epoch, model, pretrain_loader, optimizer, inmodal_scheduler, scaler, options, memory_bank, inmodal=True)
                 # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, memory_bank, inmodal=True)
             elif epoch <= options.multimodal_warmup + options.inmodal_warmup:
                 logging.info("warm up cross-modal training")
-                train(epoch, model, pretrain_loader, optimizer, pretrain_scheduler, scaler, options, memory_bank, inmodal=False)
+                train(epoch, model, pretrain_loader, optimizer, inmodal_scheduler, scaler, options, memory_bank, inmodal=False)
                 # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
                 if epoch == options.multimodal_warmup + options.inmodal_warmup:
                     del pretrain_loader
