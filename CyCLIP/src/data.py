@@ -14,9 +14,9 @@ from utils.augment_image import _augment_image
 from math import ceil
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-    
-class ImageCaptionDataset(Dataset):
-    def __init__(self, path, image_key, caption_key, delimiter, processor, inmodal = False, cross_aug=False):
+
+class CLIPImageCaptionDataset(Dataset):
+    def __init__(self, path, image_key, caption_key, delimiter, processor):
         logging.debug(f"Loading aligned data from {path}")
 
         df = pd.read_csv(path, sep = delimiter)
@@ -25,12 +25,6 @@ class ImageCaptionDataset(Dataset):
         self.images = df[image_key].tolist()
         self.captions = processor.process_text(df[caption_key].tolist())
         self.processor = processor
-        self.cross_aug = cross_aug
-        
-        self.inmodal = inmodal
-        if(inmodal or cross_aug):
-            self.augment_captions = processor.process_text([_augment_text(caption) for caption in df[caption_key].tolist()])
-            self.augment_captions_2 = processor.process_text([_augment_text(caption) for caption in df[caption_key].tolist()])
         
         logging.debug("Loaded data")
         del df
@@ -40,18 +34,42 @@ class ImageCaptionDataset(Dataset):
 
     def __getitem__(self, idx):
         item = {}
+        item["input_ids"] = self.captions["input_ids"][idx]
+        item["attention_mask"] = self.captions["attention_mask"][idx]
+        item["pixel_values"] = self.processor.process_image(Image.open(os.path.join(self.root, self.images[idx])).convert('RGB'))
+        item["index"] = idx
+            
+        return item
+
+
+class ImageCaptionDataset(Dataset):
+    def __init__(self, path, image_key, caption_key, delimiter, processor, cross_aug=True):
+        logging.debug(f"Loading aligned data from {path}")
+
+        df = pd.read_csv(path, sep = delimiter)
+        self.root = os.path.dirname(path)
+        self.images = df[image_key].tolist()
+        self.processor = processor
+        self.cross_aug = cross_aug
+        if not self.cross_aug:
+            self.captions = processor.process_text(df[caption_key].tolist())
+        self.augment_captions = processor.process_text([_augment_text(caption) for caption in df[caption_key].tolist()])
+        self.augment_captions_2 = processor.process_text([_augment_text(caption) for caption in df[caption_key].tolist()])
         
-        # if(self.cross_aug):
-        #     item["input_ids"] = self.augment_captions["input_ids"][idx]
-        #     item["attention_mask"] = self.augment_captions["attention_mask"][idx]
-        #     item["pixel_values"] =  self.processor.process_image(_augment_image(os.path.join(self.root, self.images[idx])))
-        #     item["index"] = idx
-        if(self.inmodal or self.cross_aug):
+        logging.debug("Loaded data")
+        del df
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        item = {}
+        if self.cross_aug:
             item["input_ids"] = self.augment_captions["input_ids"][idx], self.augment_captions_2["input_ids"][idx]
             item["attention_mask"] = self.augment_captions["attention_mask"][idx], self.augment_captions_2["attention_mask"][idx]
             item["pixel_values"] = self.processor.process_image(_augment_image(os.path.join(self.root, self.images[idx]))), self.processor.process_image(_augment_image(os.path.join(self.root, self.images[idx])))
             item["index"] = idx
-        else:  
+        else:
             item["input_ids"] = self.captions["input_ids"][idx]
             item["attention_mask"] = self.captions["attention_mask"][idx]
             item["pixel_values"] = self.processor.process_image(Image.open(os.path.join(self.root, self.images[idx])).convert('RGB'))
@@ -65,7 +83,7 @@ def get_train_dataloader(options, processor):
 
     batch_size = options.batch_size
 
-    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, inmodal = options.inmodal, cross_aug=options.cross_aug)
+    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, cross_aug = options.cross_aug)
     if options.distributed:
         sampler = DistributedSampler(dataset)
     else:
@@ -80,18 +98,23 @@ def get_train_dataloader(options, processor):
 def get_train_dataset(options, processor):
     path = options.train_data
     if(path is None): return None
+    
+    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor)
+    return dataset
 
-    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, inmodal = options.inmodal or options.filter, cross_aug=options.cross_aug)
+def get_unaug_train_dataset(options, processor):
+    path = options.train_data
+    if(path is None): return None
+    
+    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, cross_aug=False)
     return dataset
 
 def get_eval_dataloader(options, processor):
     path = options.train_data
     if(path is None): return None
 
-    batch_size = options.batch_size
 
-    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, inmodal = False, cross_aug=options.cross_aug)
-    dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = False, num_workers = options.num_workers, pin_memory = False, sampler = sampler, drop_last = drop_last)
+    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor)
 
     return dataset
 
@@ -123,23 +146,23 @@ def reindex_dataloader(options, dataloader, indices, drop_last=True):
     dataloader.num_batches = ceil(len(indices)/batch_size)
     return dataloader
 
-def get_filtered_train_dataloader(options, processor):
-    path = options.filtered_train_data
-    if(path is None): return None
+# def get_filtered_train_dataloader(options, processor):
+#     path = options.filtered_train_data
+#     if(path is None): return None
 
-    batch_size = options.batch_size
+#     batch_size = options.batch_size
 
-    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, inmodal = options.inmodal, cross_aug=options.cross_aug)
-    if options.distributed:
-        sampler = DistributedSampler(dataset)
-    else:
-        sampler=None
-    logging.info(str(sampler))
-    # if not fixmatch:
-    dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = (sampler is None), num_workers = options.num_workers, pin_memory = True, sampler = sampler, drop_last = True)
-    dataloader.num_samples = len(dataloader) * batch_size
-    dataloader.num_batches = len(dataloader)
-    return dataloader
+#     dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor)
+#     if options.distributed:
+#         sampler = DistributedSampler(dataset)
+#     else:
+#         sampler=None
+#     logging.info(str(sampler))
+#     # if not fixmatch:
+#     dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = (sampler is None), num_workers = options.num_workers, pin_memory = True, sampler = sampler, drop_last = True)
+#     dataloader.num_samples = len(dataloader) * batch_size
+#     dataloader.num_batches = len(dataloader)
+#     return dataloader
 
         
 
@@ -147,7 +170,7 @@ def get_validation_dataloader(options, processor):
     path = options.validation_data  
     if(path is None): return
 
-    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, inmodal = options.inmodal)
+    dataset = ImageCaptionDataset(path, image_key = options.image_key, caption_key = options.caption_key, delimiter = options.delimiter, processor = processor, cross_aug=options.cross_aug)
     dataloader = DataLoader(dataset, batch_size = options.batch_size, shuffle = False, num_workers = options.num_workers, pin_memory = True, sampler = None, drop_last = False)
     dataloader.num_samples = len(dataset) 
     dataloader.num_batches = len(dataloader)
@@ -258,8 +281,7 @@ def load(options, processor):
     data = {}
     
     data["train_set"] = get_train_dataset(options, processor)
-
-    # data["filtered_train"] = get_filtered_train_dataloader(options, processor)
+    data["unaug_train_set"] = get_unaug_train_dataset(options, processor)
     data["validation"] = get_validation_dataloader(options, processor)
     data["eval_test"] = get_eval_test_dataloader(options, processor)
     data["eval_train"] = get_eval_train_dataloader(options, processor)

@@ -1,11 +1,11 @@
 #!/bin/bash
 
-runNames='NNCLIP_100K_NN_CROSS'
-lpName='NNCLIP_100K_NN_CROSS_eval'
-device=4
+runNames='NNCLIP_1M_0.02'
+lpName='NNCLIP_1M_0.02_eval'
+device=0
 
-beginEpoch=26
-endEpoch=31
+beginEpoch=32
+endEpoch=32
 batch_size=256
 
 # clean similarity args
@@ -28,12 +28,12 @@ do
 done
 
 # poison eval args
-dataset='imagenet30'
-poison_path='../100K_30_info.csv'
+dataset='imagenet100'
+poison_path='../1M_100_info.csv'
 
 for runName in "${runNames[@]}"
 do
-    for ((i=$beginEpoch; i<=$endEpoch; i++))
+    for ((i=$beginEpoch; i<=$endEpoch; i=i+5))
     do
         checkpointPath="logs/$runName/checkpoints/epoch_$i.pt"
         
@@ -47,16 +47,16 @@ do
             eval_test_data_dir="data/$eval_data_type/test"
 
             # get LP accuracy
-            # python -m src.main --name $lpName --eval_data_type $eval_data_type --eval_train_data_dir $eval_train_data_dir --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath --linear_probe --linear_probe_batch_size $batch_size
-            # wait
-            # cp "logs/$lpName/output.log" "logs/$runName/LP_output_logs/$eval_data_type/output_epoch$i.log" 
-            # wait
+            python -m src.main --name $lpName --eval_data_type $eval_data_type --eval_train_data_dir $eval_train_data_dir --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath --linear_probe --linear_probe_batch_size $batch_size
+            wait
+            cp "logs/$lpName/output.log" "logs/$runName/LP_output_logs/$eval_data_type/output_epoch$i.log" 
+            wait
 
-            # # get ZS accuracy
-            # python -m src.main --name $lpName --eval_data_type $eval_data_type  --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath 
-            # wait
-            # cp "logs/$lpName/output.log" "logs/$runName/ZS_output_logs/$eval_data_type/output_epoch$i.log" 
-            # wait
+            # get ZS accuracy
+            python -m src.main --name $lpName --eval_data_type $eval_data_type  --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath 
+            wait
+            cp "logs/$lpName/output.log" "logs/$runName/ZS_output_logs/$eval_data_type/output_epoch$i.log" 
+            wait
         done 
 
         # get poison evals 

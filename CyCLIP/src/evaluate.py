@@ -21,7 +21,7 @@ def get_validation_metrics(model, dataloader, options):
 
     with torch.no_grad():
         for batch in tqdm(dataloader):
-            if(options.inmodal):
+            if(options.cross_aug):
                 input_ids, attention_mask, pixel_values = batch["input_ids"][0].to(options.device, non_blocking = True), batch["attention_mask"][0].to(options.device, non_blocking = True), batch["pixel_values"][0].to(options.device, non_blocking = True)
                 augmented_input_ids, augmented_attention_mask, augmented_pixel_values = batch["input_ids"][1].to(options.device, non_blocking = True), batch["attention_mask"][1].to(options.device, non_blocking = True), batch["pixel_values"][1].to(options.device, non_blocking = True)
                 input_ids = torch.cat([input_ids, augmented_input_ids])
@@ -280,18 +280,9 @@ def get_all_similarity_distance(model, dataloader, options):
         total_similarity_distance = np.array([])
         sample_indices = []
         for batch in tqdm(dataloader):
-            # if(options.inmodal):
             input_ids, attention_mask, pixel_values = batch["input_ids"][0].to(options.device, non_blocking = True), batch["attention_mask"][0].to(options.device, non_blocking = True), batch["pixel_values"][0].to(options.device, non_blocking = True)
             sample_index = torch.tensor(batch["index"]).to(options.device, non_blocking = True)
-            
-            # augmented_input_ids, augmented_attention_mask, augmented_pixel_values = batch["input_ids"][1].to(options.device, non_blocking = True), batch["attention_mask"][1].to(options.device, non_blocking = True), batch["pixel_values"][1].to(options.device, non_blocking = True)
-            # input_ids = torch.cat([input_ids, augmented_input_ids])
-            # attention_mask = torch.cat([attention_mask, augmented_attention_mask])
-            # pixel_values = torch.cat([pixel_values, augmented_pixel_values])
-            # else:
-            #     input_ids, attention_mask, pixel_values = batch["input_ids"].to(options.device, non_blocking = True), batch["attention_mask"].to(options.device, non_blocking = True), batch["pixel_values"].to(options.device, non_blocking = True)
             outputs = model(input_ids = input_ids, attention_mask = attention_mask, pixel_values = pixel_values)
-            # umodel = model.module if(options.distributed) else model
             image_embeds = outputs.image_embeds
             text_embeds = outputs.text_embeds
 
@@ -307,10 +298,6 @@ def get_all_similarity_distance(model, dataloader, options):
 
                 gathered_sample_indices = [torch.zeros_like(sample_index) for _ in range(options.num_devices)]
                 dist.all_gather(gathered_sample_indices, sample_index)
-                # print("sample_index", sample_index.shape)
-                # print("gathered_sample_indices length", len(gathered_sample_indices))
-                # print("rank: ", options.rank, "gathered_sample_indices 0 type", type(gathered_sample_indices[0]))
-                # print("rank: ", options.rank, "gathered_sample_indices 1 type", type(gathered_sample_indices[1]))
                 sample_index = torch.cat(gathered_sample_indices[:options.rank]+ [sample_index] + gathered_sample_indices[options.rank + 1:])
 
             a = image_embeds.cpu().numpy()
