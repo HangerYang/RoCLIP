@@ -104,7 +104,7 @@ def worker(rank, options, logger):
         print("Pretrain loader number of samples: ", pretrain_loader.num_samples)
         optimizer = optim.AdamW([{"params": no_weight_decay_parameters, "weight_decay": 0}, {"params": weight_decay_parameters, "weight_decay": options.weight_decay}], lr = options.in_lr, betas = (options.beta1, options.beta2), eps = options.eps)
         total_train_steps = calcualte_num_batches(options, pretrain_loader.num_batches)
-        options.train_num_batches = total_train_steps // (options.epochs - options.inmodal_warmup - options.multimodal_warmup)
+        options.train_num_batches = total_train_steps // (32 - options.inmodal_warmup - options.multimodal_warmup)
         inmodal_scheduler = cosine_scheduler(optimizer, options.in_lr, options.filter_lr, options.num_warmup_steps, total_train_steps)
         crossmodal_scheduler = cosine_scheduler(optimizer, options.cross_lr, options.filter_lr, options.num_warmup_steps, total_train_steps)
 
