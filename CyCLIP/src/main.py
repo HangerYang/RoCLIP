@@ -27,14 +27,13 @@ import pandas as pd
 from pkgs.openai.clip import load as load_model
 sys.path.insert(1, 'src')
 from .train import train
-from .evaluate import evaluate
+from .evaluate import evaluate, get_all_similarity_distance, intersection, diff
 from .data import load as load_data
-from .data import get_subset_dataloader, reindex_dataloader
+from .data import get_subset_dataloader
 from .parser import parse_args
 from .scheduler import cosine_scheduler, calcualte_num_batches
 from .logger import get_logger, set_logger
 from .memory_bank import NNMemoryBankModule
-from .evaluate import get_all_similarity_distance
 mp.set_start_method("spawn", force = True)
 warnings.filterwarnings("ignore")
 import pdb
@@ -67,7 +66,8 @@ def worker(rank, options, logger):
     model, processor = load_model(name = options.model_name, pretrained = options.pretrained)
     memory_bank = None
     if options.memory_bank:
-        logging.info("memory bank online")
+        if(options.master):
+            logging.info("memory bank online")
         caption_memory_bank = NNMemoryBankModule(size=options.memory_bank_size)
         caption_memory_bank.to(options.device)
         image_memory_bank = NNMemoryBankModule(size=options.memory_bank_size)
@@ -84,8 +84,13 @@ def worker(rank, options, logger):
             model = DDP(model, device_ids = [options.device_ids[options.rank]])  
     load_start = time.time()
     data = load_data(options, processor)
+    initial_value = torch.zeros(len(data['train_set']))
+    initial_time = torch.zeros(len(data['train_set']))
+    accumulate_bible = torch.tensor(list(zip(initial_value, initial_time))).T
+    bible = None
     load_end = time.time()
-    logging.info("data loading time: {}".format(str(load_end - load_start)))
+    if(options.master):
+        logging.info("data loading time: {}".format(str(load_end - load_start)))
     optimizer = None
     if(data["train_set"] is not None):        
         weight_decay_parameters = []
@@ -170,11 +175,13 @@ def worker(rank, options, logger):
 
             start = time.time()
             if epoch <= options.inmodal_warmup:
-                logging.info("warm up in-modal training")
-                train(epoch, model, pretrain_loader, optimizer, pretrain_scheduler, scaler, options, memory_bank, inmodal=True)
+                if(options.master):
+                    logging.info("warm up in-modal training")
+                train(epoch, model, pretrain_loader, optimizer, inmodal_scheduler, scaler, options, memory_bank, inmodal=True)
                 # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, memory_bank, inmodal=True)
             elif epoch <= options.multimodal_warmup + options.inmodal_warmup:
-                logging.info("warm up cross-modal training")
+                if(options.master):
+                    logging.info("warm up cross-modal training")
                 if options.cross_aug:
                     train(epoch, model, pretrain_loader, optimizer, pretrain_scheduler, scaler, options, memory_bank, inmodal=False)
                 else:
@@ -189,51 +196,63 @@ def worker(rank, options, logger):
                     if dataloader_update_epoch % options.index_update_freq == 0:
                         # update dataloader
                         all_loader = get_subset_dataloader(options, data['train_set'], range(len(data['train_set'])), drop_last=False)
-                        logging.info("All loader number of samples: {}".format(all_loader.num_samples))
+                        if(options.master):
+                            start = time.time()   
                         similarities, sample_indices = get_all_similarity_distance(model, all_loader, options)    
-
-                        logging.info('Complete Filtering')
+                        if(options.master):
+                            end = time.time()   
+                            logging.info("Time spend on this: {}".format(end - start))
                         del all_loader
                         last_update_epoch = epoch
                         sorted_indices = torch.argsort(similarities, descending=True)
-                        sample_indices = sample_indices[sorted_indices]
-                        new_indices = sample_indices.tolist()
-                        if options.master:
-                            # Save the combined array to a TSV file
-                            np.savetxt('%s/%s_update%d.tsv' % (options.index_dir, options.name, last_update_epoch), 
-                                    # np.array(np.column_stack((sample_indices.numpy(), similarities[sorted_indices].numpy())), \
-                                    #         dtype=[('float_col', float), ('int_col', int)]), \
-                                    np.column_stack((sample_indices.cpu().numpy(), similarities[sorted_indices].numpy())),
-                                    delimiter='\t',
-                                    fmt=['%d','%0.6f'])
+                        new_indices = sample_indices[sorted_indices]
+                        new_indices = new_indices.tolist()
+                        bible = new_indices
+                        accumulate_bible[0][sample_indices] = accumulate_bible[0][sample_indices] +  similarities.cpu()
+                        accumulate_bible[1][sample_indices] = accumulate_bible[1][sample_indices] +  1
+                        if options.master and options.save_index:
+                            torch.save(torch.column_stack((sample_indices, similarities[sorted_indices])), '%s/%s_update%d.pt' % (options.index_dir, options.name, last_update_epoch))
                         if epoch > options.index_update_freq:
                             # filter_ratio = min(filter_ratio-options.dim_td, options.cap_filter_ratio)
                             idx_td = max(idx_td - options.dim_td, options.min_td)
-                        
                     else:
                         evaluate_ratio = min(filter_ratio+idx_td, options.cap_filter_ratio)
-                        logging.info('Evaluation Ratio: {}'.format(evaluate_ratio))
-                        logging.info('Filter Ratio: {}'.format(filter_ratio))
-                        file_path = '%s/%s_update%d.tsv' % (options.index_dir, options.name, last_update_epoch)
-                        df = pd.read_csv(file_path, sep='\t', header=None)
-                        idx_all = df[0].tolist()
+                        if(options.master):
+                            logging.info('Evaluation Ratio: {}'.format(evaluate_ratio))
+                            logging.info('Filter Ratio: {}'.format(filter_ratio))
+
                         idx_search_range = int(len(data['train_set']) * evaluate_ratio)
-                        idx_search = idx_all[:idx_search_range]
+                        idx_search = bible[:idx_search_range]
                         all_loader = get_subset_dataloader(options, data['train_set'], idx_search, drop_last=False)
-                        logging.info("Partial loader number of samples: {}".format(all_loader.num_samples))
+                        if(options.master):
+                            logging.info("Partial loader number of samples: {}".format(all_loader.num_samples))
                         # pdb.set_trace()
                         similarities, sample_indices = get_all_similarity_distance(model, all_loader, options)
-                        logging.info('Complete Filtering')
+                        if(options.master):
+                            logging.info('Complete Filtering')
                         del all_loader  
                         sorted_indices = torch.argsort(similarities, descending=True)
-                        sample_indices = sample_indices[sorted_indices]
-                        new_indices = sample_indices.tolist()
-                    multimodal_indices = new_indices[:int(len(similarities)*filter_ratio)]
-                    inmodal_indices = new_indices[int(len(similarities)*filter_ratio):]
+                        new_indices = sample_indices[sorted_indices]
+                        new_indices = new_indices.tolist()
+                        accumulate_bible[0][sample_indices] = accumulate_bible[0][sample_indices] +  similarities.cpu()
+                        accumulate_bible[1][sample_indices] = accumulate_bible[1][sample_indices] +  1
+
+                    
+                    multimodal_indices_by_similarities = new_indices[:int(len(data['train_set'])*filter_ratio)]
+                    acc_sim = accumulate_bible[0][sample_indices] / accumulate_bible[1][sample_indices]
+                    acc_new_indices = torch.argsort(acc_sim, descending=True)
+                    
+                    multimodal_indices_by_accumulate = acc_new_indices[:int(len(data['train_set'])*filter_ratio)]
+                    # multimodal_indices = multimodal_indices_by_accumulate
+                    multimodal_indices = intersection(multimodal_indices_by_similarities, multimodal_indices_by_accumulate)
+                    inmodal_indices = diff(new_indices, multimodal_indices)
+
+                    # inmodal_indices = new_indices[int(len(data['train_set'])*filter_ratio):]
                     filter_ratio = min(filter_ratio+options.update_filter_ratio, options.cap_filter_ratio)                
                 if options.cross_inmodal:
                     inmodal_loader = get_subset_dataloader(options, data['train_set'], inmodal_indices)
-                    logging.info("Inmodal loader number of samples: {}".format(inmodal_loader.num_samples))
+                    if(options.master):
+                        logging.info("Inmodal loader number of samples: {}".format(inmodal_loader.num_samples))
                     train(epoch, model, inmodal_loader, optimizer, inmodal_scheduler, scaler, options, memory_bank, inmodal=True)
                     del inmodal_loader
                 # train_loader.sampler.indices = inmodal_indices
@@ -242,21 +261,20 @@ def worker(rank, options, logger):
                     multimodal_loader = get_subset_dataloader(options, data['train_set'], multimodal_indices)
                 else:
                     multimodal_loader = get_subset_dataloader(options, data['unaug_train_set'], multimodal_indices)
-                logging.info("Multimodal loader number of samples: {}".format(multimodal_loader.num_samples))
+                if(options.master):
+                    logging.info("Multimodal loader number of samples: {}".format(multimodal_loader.num_samples))
                 train(epoch, model, multimodal_loader, optimizer, crossmodal_scheduler, scaler, options, memory_bank, inmodal=False)
                 del multimodal_loader
                 # train_loader.sampler.indices = multimodal_indices
                 # train(epoch, model, train_loader , optimizer, scheduler, scaler, options, caption_memory_bank, inmodal=False)
 
                 dataloader_update_epoch += 1
-            end = time.time()
-
-            if(options.master): 
-                logging.info(f"Finished Epoch {epoch}, Time Taken: {end - start:.3f}")
+            end = time.time()                
 
             # metrics = evaluate(epoch, model, processor, data, options)
 
             if(options.master):
+                logging.info(f"Finished Epoch {epoch}, Time Taken: {end - start:.3f}")
                 checkpoint = {"epoch": epoch, "name": options.name, "state_dict": model.state_dict(), "optimizer": optimizer.state_dict()}
                 torch.save(checkpoint, os.path.join(options.checkpoints_dir_path, f"epoch_{epoch}.pt"))
                 # if("loss" in metrics):

@@ -5,3 +5,4 @@ full_3M_data.csv
 *.tsv
 *.sh
 *.png
+*.pt

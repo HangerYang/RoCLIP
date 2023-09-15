@@ -8,6 +8,7 @@ from tqdm import tqdm
 from .scheduler import cosine_scheduler
 from sklearn.metrics.pairwise import cosine_similarity
 import torch.distributed as dist
+import torch.nn.functional as F
 
 def get_validation_metrics(model, dataloader, options):
     logging.info("Started validating")
@@ -277,7 +278,8 @@ def get_similarity_distance(options, image, text, text_nn, index, epoch):
 def get_all_similarity_distance(model, dataloader, options):
     model.eval()
     with torch.no_grad():
-        total_similarity_distance = np.array([])
+        # total_similarity_distance = np.array([])
+        total_similarity_distance = []
         sample_indices = []
         for batch in tqdm(dataloader):
             input_ids, attention_mask, pixel_values = batch["input_ids"][0].to(options.device, non_blocking = True), batch["attention_mask"][0].to(options.device, non_blocking = True), batch["pixel_values"][0].to(options.device, non_blocking = True)
@@ -299,13 +301,25 @@ def get_all_similarity_distance(model, dataloader, options):
                 gathered_sample_indices = [torch.zeros_like(sample_index) for _ in range(options.num_devices)]
                 dist.all_gather(gathered_sample_indices, sample_index)
                 sample_index = torch.cat(gathered_sample_indices[:options.rank]+ [sample_index] + gathered_sample_indices[options.rank + 1:])
-
-            a = image_embeds.cpu().numpy()
-            b = text_embeds.cpu().numpy()
-
-            similarity_matrix = np.diagonal(cosine_similarity(a, b))
-            total_similarity_distance = np.concatenate((total_similarity_distance, similarity_matrix), 0)
-
+            
+            output = F.cosine_similarity(image_embeds, text_embeds)
+            total_similarity_distance.append(output)
             sample_indices.append(sample_index)
+    
+    return torch.cat(total_similarity_distance, 0), torch.cat(sample_indices, 0)
 
-    return torch.from_numpy(total_similarity_distance), torch.cat(sample_indices, 0)
+
+    #         a = image_embeds.cpu().numpy()
+    #         b = text_embeds.cpu().numpy()
+
+    #         similarity_matrix = np.diagonal(cosine_similarity(a, b))
+    #         total_similarity_distance = np.concatenate((total_similarity_distance, similarity_matrix), 0)
+
+    #         sample_indices.append(sample_index)
+
+    # return torch.from_numpy(total_similarity_distance), torch.cat(sample_indices, 0)
+def intersection(a, b):
+    return list(set(a) & set(b))
+
+def diff(a,b):
+    return list(set(a) - set(b))

@@ -4,8 +4,8 @@ runNames='NNCLIP_1M_0.02'
 lpName='NNCLIP_1M_0.02_eval'
 device=0
 
-beginEpoch=32
-endEpoch=32
+beginEpoch=24
+endEpoch=31
 batch_size=256
 
 # clean similarity args
@@ -28,8 +28,8 @@ do
 done
 
 # poison eval args
-dataset='imagenet100'
-poison_path='../1M_100_info.csv'
+dataset='imagenet500'
+poison_path='../1M_500_info.csv'
 
 for runName in "${runNames[@]}"
 do
@@ -47,10 +47,10 @@ do
             eval_test_data_dir="data/$eval_data_type/test"
 
             # get LP accuracy
-            python -m src.main --name $lpName --eval_data_type $eval_data_type --eval_train_data_dir $eval_train_data_dir --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath --linear_probe --linear_probe_batch_size $batch_size
-            wait
-            cp "logs/$lpName/output.log" "logs/$runName/LP_output_logs/$eval_data_type/output_epoch$i.log" 
-            wait
+            # python -m src.main --name $lpName --eval_data_type $eval_data_type --eval_train_data_dir $eval_train_data_dir --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath --linear_probe --linear_probe_batch_size $batch_size
+            # wait
+            # cp "logs/$lpName/output.log" "logs/$runName/LP_output_logs/$eval_data_type/output_epoch$i.log" 
+            # wait
 
             # get ZS accuracy
             python -m src.main --name $lpName --eval_data_type $eval_data_type  --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath 
@@ -60,7 +60,7 @@ do
         done 
 
         # get poison evals 
-        python verify_with_template_full.py --model_name $runName --device $device --epoch $i --dataset $dataset --path $poison_path --distributed
-        wait
+        # python verify_with_template_full.py --model_name $runName --device $device --epoch $i --dataset $dataset --path $poison_path --distributed
+        # wait
     done
 done
