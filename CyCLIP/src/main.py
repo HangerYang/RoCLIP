@@ -177,7 +177,7 @@ def worker(rank, options, logger):
             if epoch <= options.inmodal_warmup:
                 if(options.master):
                     logging.info("warm up in-modal training")
-                train(epoch, model, pretrain_loader, optimizer, inmodal_scheduler, scaler, options, memory_bank, inmodal=True)
+                train(epoch, model, pretrain_loader, optimizer, pretrain_scheduler, scaler, options, memory_bank, inmodal=True)
                 # train(epoch, model, train_loader, optimizer, scheduler, scaler, options, memory_bank, inmodal=True)
             elif epoch <= options.multimodal_warmup + options.inmodal_warmup:
                 if(options.master):
