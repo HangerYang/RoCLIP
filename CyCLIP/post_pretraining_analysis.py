@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import re
 import numpy as np
 
+
 poison_per_category = 100
 poisoners = ['desk', 'palace', 'necklace', 'balloon', 'pillow', 
              'candle', 'pizza', 'umbrella', 'television', "baseball", 
@@ -17,6 +18,8 @@ def plot_poison_distribution(file_path, poison_category='full', filter_ratios=[0
 
     if poison_category == 'full':
         condition = df[0] < full_poison_range
+    elif poison_category == 'less':
+        condition = df[0] < (full_poison_range // 2)
     else:
         condition = (df[0] >= poison_per_category * poisoners.index(poison_category) \
                         and df[0] < poison_per_category * (poisoners.index(poison_category)+1))
@@ -73,27 +76,30 @@ def plot_poison_distribution(file_path, poison_category='full', filter_ratios=[0
 #         for lr in lrs:
 #             plot_poison_distribution('indices/post_cliponly_freq_%d_uf_%s_llr_update%d.tsv' % (f,lr,u*f))
 
+plot_poison_distribution('indices/inmodal_epoch_10_in_lr_1e-4_filter_lr_5e-6_cross_aug_memory_bank_update12.tsv', poison_category='less')
+# configs = [[3, '01', '1e-5'], [3, '005', '1e-5']]
+# updates = 9
+# for config in configs:
+#     for u in range(updates):
+#         plot_poison_distribution('indices/freq_%d_uf_%s_postlr_%s_lr_1e-4_ic_update%d.tsv'\
+#                     % (config[0],config[1],config[2], u*config[0]))
 
-configs = [[3, '01', '1e-5'], [3, '005', '1e-5']]
-updates = 9
-for config in configs:
-    for u in range(updates):
-        plot_poison_distribution('indices/freq_%d_uf_%s_postlr_%s_lr_1e-4_ic_update%d.tsv'\
-                    % (config[0],config[1],config[2], u*config[0]))
+# configs = [[3, '005', '5e-6']]
+# updates = 9
+# for config in configs:
+#     for u in range(updates):
+#         plot_poison_distribution('indices/freq_%d_uf_%s_postlr_%s_lr_1e-4_run3_update%d.tsv'\
+#                     % (config[0],config[1],config[2], u*config[0]))
 
-configs = [[3, '005', '5e-6']]
-updates = 9
-for config in configs:
-    for u in range(updates):
-        plot_poison_distribution('indices/freq_%d_uf_%s_postlr_%s_lr_1e-4_run3_update%d.tsv'\
-                    % (config[0],config[1],config[2], u*config[0]))
+# configs = [[4, '01', '1e-5']]
+# updates = 7
+# for config in configs:
+#     for u in range(updates):
+#         plot_poison_distribution('indices/freq_%d_uf_%s_postlr_%s_lr_1e-4_ic_update%d.tsv'\
+#                     % (config[0],config[1],config[2], u*config[0]))
+  
+for i in range(1, 6):
+    plot_poison_distribution('indices/inmodal_epoch_5_lr_1e-5_post_lr_5e-6_update%d.tsv' % i)
 
-configs = [[4, '01', '1e-5']]
-updates = 7
-for config in configs:
-    for u in range(updates):
-        plot_poison_distribution('indices/freq_%d_uf_%s_postlr_%s_lr_1e-4_ic_update%d.tsv'\
-                    % (config[0],config[1],config[2], u*config[0]))
-
-        
-        
+for i in range(1, 11):
+    plot_poison_distribution('indices/inmodal_epoch_10_lr_1e-5_post_lr_5e-6_update%d.tsv' % i)

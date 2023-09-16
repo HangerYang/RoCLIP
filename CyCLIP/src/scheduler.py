@@ -25,7 +25,7 @@ def calcualte_num_batches(options, num_batches):
     total_step = 0
     for i in range(num_update):
         total_step = total_step + (i * options.update_filter_ratio + options.filter_ratio) * options.loader_update_freq * num_batches
-    total_step =  total_step + ((i+1) * options.update_filter_ratio + options.filter_ratio) * num_batches * left_off_epoch
+    total_step =  total_step + ((num_update) * options.update_filter_ratio + options.filter_ratio) * num_batches * left_off_epoch
     return total_step
 
 
