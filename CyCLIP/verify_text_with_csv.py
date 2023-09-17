@@ -9,6 +9,7 @@ import argparse
 from src.data import ImageCaptionDataset
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
+import torch.nn.functional as F
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model_name", type = str, default = "CLIP")
@@ -19,7 +20,7 @@ options = parser.parse_args()
 
 model_name=options.model_name
 k_total = []
-for epoch in range(7,13):
+for epoch in [6]:
     epoch = str(epoch)
     print(epoch)
     device = 'cuda:{}'.format(options.device)
@@ -44,7 +45,7 @@ for epoch in range(7,13):
     model.load_state_dict(state_dict)
     print("finish loading")
     dataset = ImageCaptionDataset(options.path, image_key, caption_key, delimiter, processor, False)
-    dataloader = DataLoader(dataset, batch_size = 256, shuffle = False, num_workers = 12, pin_memory = True, sampler = None, drop_last = False)
+    dataloader = DataLoader(dataset, batch_size = 2048, shuffle = False, num_workers = 12, pin_memory = True, sampler = None, drop_last = False)
     model.eval()
     print("finish loading data")
     with torch.no_grad():
@@ -54,8 +55,10 @@ for epoch in range(7,13):
             outputs = model(input_ids = input_ids, attention_mask = attention_mask, pixel_values = pixel_values)
             a = outputs.image_embeds
             b = outputs.text_embeds
-            k=torch.diag(a.T @ b)
-            k_temp.append(k)
+            output = F.cosine_similarity(a, b)
+            k_temp.append(output)
+#             k=torch.diag(a.T @ b)
+#             k_temp.append(k)
     k_temp = torch.cat(k_temp).cpu().numpy()
     k_total.append(k_temp)
 res = k_total
