@@ -207,10 +207,11 @@ def worker(rank, options, logger):
                         sorted_indices = torch.argsort(similarities, descending=True)
                         new_indices = sample_indices[sorted_indices]
                         new_indices = new_indices.tolist()
+                        cpu_indices = sample_indices.cpu()
                         bible = new_indices
 
-                        accumulate_bible[0][sample_indices] = accumulate_bible[0][sample_indices] +  similarities.cpu()
-                        accumulate_bible[1][sample_indices] = accumulate_bible[1][sample_indices] +  1
+                        accumulate_bible[0][cpu_indices] = accumulate_bible[0][cpu_indices] +  similarities.cpu()
+                        accumulate_bible[1][cpu_indices] = accumulate_bible[1][cpu_indices] +  1
                         if options.master and options.save_index:
                             torch.save(torch.column_stack((torch.tensor(new_indices), similarities[sorted_indices].cpu())), '%s/%s_update%d.pt' % (options.index_dir, options.name, last_update_epoch))
                         if epoch > options.index_update_freq:
@@ -235,29 +236,30 @@ def worker(rank, options, logger):
                         del all_loader  
                         sorted_indices = torch.argsort(similarities, descending=True)
                         new_indices = sample_indices[sorted_indices]
+                        cpu_indices = sample_indices.cpu()
                         new_indices = new_indices.tolist()
                         
-                        accumulate_bible[0][sample_indices] = accumulate_bible[0][sample_indices] +  similarities.cpu()
-                        accumulate_bible[1][sample_indices] = accumulate_bible[1][sample_indices] +  1
+                        accumulate_bible[0][cpu_indices] = accumulate_bible[0][cpu_indices] +  similarities.cpu()
+                        accumulate_bible[1][cpu_indices] = accumulate_bible[1][cpu_indices] +  1
 
-                    all_indices = list(range(len(data['train_set'])))
-                    multimodal_indices_by_similarities = new_indices[:int(len(data['train_set'])*filter_ratio)]
-                    acc_sim = accumulate_bible[0][sample_indices] / accumulate_bible[1][sample_indices]
-                    acc_new_indices = torch.argsort(acc_sim, descending=True)
-                    
-                    multimodal_indices_by_accumulate = acc_new_indices[:int(len(data['train_set'])*filter_ratio)]
-                    # multimodal_indices = multimodal_indices_by_accumulate
-                    multimodal_indices = intersection(multimodal_indices_by_similarities, multimodal_indices_by_accumulate.tolist())
-                    inmodal_indices = diff(all_indices, multimodal_indices)
-
-                    # multimodal_indices = new_indices[:int(len(data['train_set'])*filter_ratio)]
-
-                    # inmodal_indices = new_indices[int(len(data['train_set'])*filter_ratio):]
+                    if options.use_intersection_idx:
+                        all_indices = list(range(len(data['train_set'])))
+                        multimodal_indices_by_similarities = new_indices[:int(len(data['train_set'])*filter_ratio)]
+                        acc_sim = accumulate_bible[0][cpu_indices] / accumulate_bible[1][cpu_indices]
+                        acc_new_indices = torch.argsort(acc_sim, descending=True)
+                        
+                        multimodal_indices_by_accumulate = acc_new_indices[:int(len(data['train_set'])*filter_ratio)]
+                        # multimodal_indices = multimodal_indices_by_accumulate
+                        multimodal_indices = intersection(multimodal_indices_by_similarities, multimodal_indices_by_accumulate.tolist())
+                        inmodal_indices = diff(all_indices, multimodal_indices)
+                    else:
+                        multimodal_indices = new_indices[:int(len(data['train_set'])*filter_ratio)]
+                        inmodal_indices = new_indices[int(len(data['train_set'])*filter_ratio):]
                     filter_ratio = min(filter_ratio+options.update_filter_ratio, options.cap_filter_ratio)                
                 if options.cross_inmodal:
                     inmodal_loader = get_subset_dataloader(options, data['train_set'], inmodal_indices)
                     if(options.master):
-                        logging.info("Inmodal loader number of samples: {}".format(inmodal_loader.num_samples))
+                        logging.info("Inmodal loader number of samples: {}".format(inmodal_loader.num_samples*options.num_devices))
                     train(epoch, model, inmodal_loader, optimizer, inmodal_scheduler, scaler, options, memory_bank, inmodal=True)
                     del inmodal_loader
                 # train_loader.sampler.indices = inmodal_indices
@@ -267,7 +269,7 @@ def worker(rank, options, logger):
                 else:
                     multimodal_loader = get_subset_dataloader(options, data['unaug_train_set'], multimodal_indices)
                 if(options.master):
-                    logging.info("Multimodal loader number of samples: {}".format(multimodal_loader.num_samples))
+                    logging.info("Multimodal loader number of samples: {}".format(multimodal_loader.num_samples*options.num_devices))
                 train(epoch, model, multimodal_loader, optimizer, crossmodal_scheduler, scaler, options, memory_bank, inmodal=False)
                 del multimodal_loader
                 # train_loader.sampler.indices = multimodal_indices

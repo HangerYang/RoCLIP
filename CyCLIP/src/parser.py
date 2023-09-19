@@ -59,9 +59,10 @@ def parse_args():
     parser.add_argument("--idx_td", type = float, default = 0.35, help = "threshold for checking cosine similarity")
     parser.add_argument("--dim_td", type = float, default = 0.05, help = "diminishing threshold for checking cosine similarity")
     parser.add_argument("--min_td", type = float, default = 0.1, help = "diminishing threshold for checking cosine similarity")
+    parser.add_argument("--use_intersection_idx", action = 'store_true', default = False)
     parser.add_argument("--update_filter_ratio", type = float, default = 0.05)
     parser.add_argument("--save_index", action = "store_true", default = False)
     parser.add_argument("--index_dir", type = str, default = "indices")
     parser.add_argument("--cap_filter_ratio", type = float, default = 0.95)
     options = parser.parse_args()
-    return options
+    return options 
