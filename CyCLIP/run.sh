@@ -1,11 +1,11 @@
 #!/bin/bash
 
-runNames='NNCLIP_1M_0.02'
-lpName='NNCLIP_1M_0.02_eval'
+runNames='NNCLIP_1M_500'
+lpName='NNCLIP_1M_500_eval'
 device=0
 
-beginEpoch=24
-endEpoch=31
+beginEpoch=23
+endEpoch=23
 batch_size=256
 
 # clean similarity args
@@ -53,14 +53,14 @@ do
             # wait
 
             # get ZS accuracy
-            python -m src.main --name $lpName --eval_data_type $eval_data_type  --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath 
-            wait
-            cp "logs/$lpName/output.log" "logs/$runName/ZS_output_logs/$eval_data_type/output_epoch$i.log" 
-            wait
+            # python -m src.main --name $lpName --eval_data_type $eval_data_type  --eval_test_data_dir $eval_test_data_dir --device_id $device --checkpoint $checkpointPath 
+            # wait
+            # cp "logs/$lpName/output.log" "logs/$runName/ZS_output_logs/$eval_data_type/output_epoch$i.log" 
+            # wait
         done 
 
         # get poison evals 
-        # python verify_with_template_full.py --model_name $runName --device $device --epoch $i --dataset $dataset --path $poison_path --distributed
+        python verify_with_template_full.py --model_name $runName --device $device --epoch $i --dataset $dataset --path $poison_path --distributed
         # wait
     done
 done

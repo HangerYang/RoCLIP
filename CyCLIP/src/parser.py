@@ -35,6 +35,7 @@ def parse_args():
     parser.add_argument("--num_workers", type = int, default = 8, help = "Number of workers per gpu")
     parser.add_argument("--epochs", type = int, default = 32, help = "Number of train epochs")
     parser.add_argument("--batch_size", type = int, default = 128, help = "Batch size")
+    parser.add_argument("--eval_batch_size", type = int, default = 1024, help = "Batch size")
     parser.add_argument("--cross_lr", type = float, default = 0.0005, help = "Cross-modality Learning rate")
     parser.add_argument("--in_lr", type = float, default = 0.0005, help = "In-modality Learning rate")
     parser.add_argument("--filter_lr", type = float, default = 1e-5, help = "Filtering Learning rate")

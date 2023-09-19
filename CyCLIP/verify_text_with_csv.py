@@ -44,14 +44,14 @@ for epoch in [6]:
     state_dict = state_dict_rename
     model.load_state_dict(state_dict)
     print("finish loading")
-    dataset = ImageCaptionDataset(options.path, image_key, caption_key, delimiter, processor, False)
+    dataset = ImageCaptionDataset(options.path, image_key, caption_key, delimiter, processor)
     dataloader = DataLoader(dataset, batch_size = 2048, shuffle = False, num_workers = 12, pin_memory = True, sampler = None, drop_last = False)
     model.eval()
     print("finish loading data")
     with torch.no_grad():
         k_temp = []
         for index, batch in enumerate(tqdm(dataloader)):
-            input_ids, attention_mask, pixel_values = batch["input_ids"].to(device, non_blocking = True), batch["attention_mask"].to(device, non_blocking = True),batch["pixel_values"].to(device, non_blocking = True)
+            input_ids, attention_mask, pixel_values = batch["input_ids"][0].to(device, non_blocking = True), batch["attention_mask"][0].to(device, non_blocking = True), batch["pixel_values"][0].to(device, non_blocking = True)
             outputs = model(input_ids = input_ids, attention_mask = attention_mask, pixel_values = pixel_values)
             a = outputs.image_embeds
             b = outputs.text_embeds

@@ -118,8 +118,11 @@ def get_eval_dataloader(options, processor):
 
     return dataset
 
-def get_subset_dataloader(options, dataset, indices, drop_last=True):
-    batch_size = options.batch_size
+def get_subset_dataloader(options, dataset, indices, drop_last=True, cos_eval = False):
+    if not cos_eval:
+        batch_size = options.batch_size
+    else:
+        batch_size = options.eval_batch_size
 
     if not options.distributed:
         sampler = SubsetRandomSampler(indices)
