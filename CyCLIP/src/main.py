@@ -208,9 +208,9 @@ def worker(rank, options, logger):
                         new_indices = sample_indices[sorted_indices]
                         new_indices = new_indices.tolist()
                         bible = new_indices
-
-                        accumulate_bible[0][sample_indices] = accumulate_bible[0][sample_indices] +  similarities.cpu()
-                        accumulate_bible[1][sample_indices] = accumulate_bible[1][sample_indices] +  1
+                        cpu_indices = sample_indices.cpu()
+                        accumulate_bible[0][cpu_indices] = accumulate_bible[0][cpu_indices] +  similarities.cpu()
+                        accumulate_bible[1][cpu_indices] = accumulate_bible[1][cpu_indices] +  1
                         if options.master and options.save_index:
                             torch.save(torch.column_stack((torch.tensor(new_indices), similarities[sorted_indices].cpu())), '%s/%s_update%d.pt' % (options.index_dir, options.name, last_update_epoch))
                         if epoch > options.index_update_freq:
