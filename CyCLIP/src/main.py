@@ -84,9 +84,10 @@ def worker(rank, options, logger):
             model = DDP(model, device_ids = [options.device_ids[options.rank]])  
     load_start = time.time()
     data = load_data(options, processor)
-    initial_value = torch.zeros(len(data['train_set']))
-    initial_time = torch.zeros(len(data['train_set']))
-    accumulate_bible = torch.tensor(list(zip(initial_value, initial_time))).T
+    if data['train_set'] is not None: 
+        initial_value = torch.zeros(len(data['train_set']))
+        initial_time = torch.zeros(len(data['train_set']))
+        accumulate_bible = torch.tensor(list(zip(initial_value, initial_time))).T
     bible = None
     load_end = time.time()
     if(options.master):
