@@ -100,7 +100,6 @@ def train(epoch, model, dataloader, optimizer, scheduler, scaler, options, memor
     for index, batch in enumerate(dataloader): 
         step = dataloader.num_batches * epoch + index
         scheduler(step, lr_adjust = lr_adjust)
-
         optimizer.zero_grad()
         if inmodal or options.cross_aug:
             input_ids, attention_mask, pixel_values = batch["input_ids"][0].to(options.device, non_blocking = True), batch["attention_mask"][0].to(options.device, non_blocking = True), batch["pixel_values"][0].to(options.device, non_blocking = True)
