@@ -98,7 +98,7 @@ def train(epoch, model, dataloader, optimizer, scheduler, scaler, options, memor
     start = time.time()
     logging.info(f"Num samples: {dataloader.num_samples}, Num_batches: {dataloader.num_batches}")
     for index, batch in enumerate(dataloader): 
-        step = dataloader.num_batches * epoch + index
+        step = options.train_num_batches * epoch + index
         scheduler(step, lr_adjust = lr_adjust)
         optimizer.zero_grad()
         if inmodal or options.cross_aug:
