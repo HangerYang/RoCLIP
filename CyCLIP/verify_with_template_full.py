@@ -52,11 +52,12 @@ parser.add_argument("--dataset", type = str, default = "cifar10")
 parser.add_argument("--path", type = str, default = "quiz_1.csv")
 parser.add_argument("--identifier", type = str, default = "0")
 parser.add_argument("--distributed", action = "store_true", default=False)
+parser.add_argument("--checkpoint", type = str, default = "0")
 options = parser.parse_args()
 templates = almighty["templates"]
 classes = almighty["imagenet"]
 epoch = options.epoch
-pretrained_path = "logs/{}/checkpoints/epoch_{}.pt".format(options.model_name, str(epoch))
+pretrained_path = options.checkpoint
 # pretrained_path = "/home/hyang/deadclip/CyCLIP/logs/poison50_base/checkpoints/epoch_{}.pt".format(options.epoch)
 device = 'cuda:{}'.format(options.device) 
 model, processor = load_model(name = "RN50", pretrained = False)
@@ -99,7 +100,7 @@ with torch.no_grad():
         # idx = np.where(classes == target_class)[0][0]
         target_poisoned_img = evaluation[evaluation["target"] == target_class]["path"].unique()
         for i in range(len(target_poisoned_img)):
-            original_img = "/home/hyang/deadclip/" + target_poisoned_img[i]
+            original_img = "/home/hyang/NNCLIP/" + target_poisoned_img[i]
             res1, res3, res5, target_sim, top_three= output_sim(original_img, text_features, idx)
             target_classes.append(target_class)
             target_sims.append(target_sim)

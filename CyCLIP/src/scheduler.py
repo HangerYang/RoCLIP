@@ -18,16 +18,15 @@ import numpy as np
             
 #     return _scheduler
 
-def calcualte_num_batches(options, num_batches):
+def calcualte_num_batches(options, filter_ratio):
     update_epoch = options.epochs - options.inmodal_warmup - options.multimodal_warmup
     num_update = update_epoch // options.loader_update_freq
     left_off_epoch = update_epoch % options.loader_update_freq
     total_step = 0
     for i in range(num_update):
-        total_step = total_step + (i * options.update_filter_ratio + options.filter_ratio) * options.loader_update_freq * num_batches
-    total_step =  total_step + ((num_update) * options.update_filter_ratio + options.filter_ratio) * num_batches * left_off_epoch
+        total_step = total_step + (i * options.update_filter_ratio + filter_ratio) * options.loader_update_freq * options.num_batches
+    total_step =  total_step + ((num_update) * options.update_filter_ratio + filter_ratio) * options.num_batches * left_off_epoch
     return total_step
-
 
 
 def cosine_scheduler(optimizer, base_lr, post_lr, num_warmup_steps, total_steps):

@@ -1,1 +1,1 @@
-/home/hyang/deadclip/cc
+/data/ConceptualCaptions/
