@@ -40,11 +40,11 @@ processor = processor
 print("load model")
 checkpoint = torch.load(pretrained_path, map_location = device)
 state_dict = checkpoint["state_dict"]
-# state_dict_rename = {}
-# for key, value in state_dict.items():
-#     state_dict_rename[key[7:]] = value
-# state_dict = state_dict_rename
-# model.load_state_dict(state_dict)
+state_dict_rename = {}
+for key, value in state_dict.items():
+    state_dict_rename[key[7:]] = value
+state_dict = state_dict_rename
+model.load_state_dict(state_dict)
 print("finish loading")
 dataset = ImageCaptionDataset(options.path, image_key, caption_key, delimiter, processor)
 dataloader = DataLoader(dataset, batch_size = 1024, shuffle = False, num_workers = 12, pin_memory = True, sampler = None, drop_last = False)
@@ -64,7 +64,7 @@ with torch.no_grad():
 k_temp = torch.cat(k_temp).cpu().numpy()
 k_total.append(k_temp)
 res = k_total
-np.savez("../{}_{}".format(options.model_name, options.run_name), res)
+np.savez("../{}_{}_{}".format(options.model_name, options.epoch, options.run_name), res)
 
     
   

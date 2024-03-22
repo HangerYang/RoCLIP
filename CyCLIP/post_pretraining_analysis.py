@@ -6,16 +6,17 @@ import torch
 from scipy.interpolate import make_interp_spline
 from matplotlib.lines import Line2D  # I
 
-
-poison_per_category = 250
-# poisoners = ['desk', 'palace', 'necklace', 'balloon', 'pillow', 
-#              'candle', 'pizza', 'umbrella', 'television', "baseball", 
-#              "ice cream", "suit", 'mountain', 'beach', 'plate',
-#              'orange']
-poisoners = ["pizza", "baseball", "tiger", "candle", "ice cream", "desk", "palace", "necklace", "umbrella", "beach", "pillow", "balloon", "mountain", "suit", "gown", "castle"]
+dataset_size = 2861700
+poison_per_category = 500
+# poisoners = ["label_consistent"]
+poisoners = ['desk', 'palace', 'necklace', 'balloon', 'pillow', 
+             'candle', 'pizza', 'umbrella', 'television', "baseball", 
+             "ice cream", "suit", 'mountain', 'beach', 'plate',
+             'orange']
+# poisoners = ["pizza", "baseball", "tiger", "candle", "ice cream", "desk", "palace", "necklace", "umbrella", "beach", "pillow", "balloon", "mountain", "suit", "gown", "castle"]
 full_poison_range = poison_per_category * len(poisoners)
 
-def plot_poison_distribution(file_path, poison_category='full', filter_ratios=[0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7], backdoor_num=1000):
+def plot_poison_distribution(file_path, poison_category='full', filter_ratios=[0.1, 0.15, 0.2, 0.3, 0.4, 0.5], backdoor_num=1000):
     if file_path[-2:] == 'pt':
         # import pdb
         # pdb.set_trace()
@@ -48,6 +49,7 @@ def plot_poison_distribution(file_path, poison_category='full', filter_ratios=[0
     ax1.set_title('Poison Rank Distribution')
     ax1.set_xlabel('Poison Rank')
     ax1.set_ylabel('Frequency')
+    ax1.set_xticks([0.1,0.15,0.2,0.3,0.4,0.5])
     
     comments = []
     for ratio in filter_ratios:
@@ -226,16 +228,15 @@ def plot_poison_ratio_trend(model_name, update_ratio=0.01, filter_ratio=0.15,
     plt.close()
 
 
-plot_clean_n_poison_similarity_distribution('indices/clip_poison_num_compare_update1.tsv', poison_category='less')
-plot_clean_n_poison_similarity_distribution('indices/roclip_100_16_backdoor_update1.tsv')
-plot_clean_n_poison_similarity_distribution('indices/clean_clip_100_16_backdoored_update1.tsv')
-plot_clean_n_poison_similarity_distribution('indices/NNCLIP_1M_100_16_w_NN_wo_intersection_update7.pt', training_percentage=0.15)
-plot_poison_distribution('indices/SafeCLIP_250_1000_backdoor_update7.pt')
-plot_poison_distribution('indices/SafeCLIP_250_1000_backdoor_update7.pt', poison_category='backdoor')
-plot_poison_distribution('indices/SafeCLIP_250_1000_backdoor_update12.pt', poison_category='backdoor')
-plot_poison_distribution('indices/SafeCLIP_250_1000_backdoor_update17.pt', poison_category='backdoor')
-plot_poison_distribution('indices/SafeCLIP_250_1000_backdoor_update22.pt', poison_category='backdoor')
-plot_poison_distribution('indices/SafeCLIP_250_1000_backdoor_update27.pt', poison_category='backdoor')
+# plot_clean_n_poison_similarity_distribution('indices/clip_poison_num_compare_update1.tsv', poison_category='less')
+# plot_clean_n_poison_similarity_distribution('indices/roclip_100_16_backdoor_update1.tsv')
+# plot_clean_n_poison_similarity_distribution('indices/clean_clip_100_16_backdoored_update1.tsv')
+# plot_clean_n_poison_similarity_distribution('indices/NNCLIP_1M_100_16_w_NN_wo_intersection_update7.pt', training_percentage=0.15)
+plot_poison_distribution('jigao_indices/SafeCLIP_500_backdoor_update7.pt', "backdoor", backdoor_num = 500)
+# plot_poison_distribution('indices/safeclip_1M_large_slow_update17.pt')
+# plot_poison_distribution('indices/safeclip_1M_large_slow_update27.pt')
+# plot_poison_distribution('indices/safeclip_1M_large_slow_update37.pt')
+# plot_poison_distribution('indices/safeclip_1M_label_consistent_update7.pt')
 
 
 # plot_clean_n_poison_similarity_distribution('indices/SafeCLIP_500_backdoor_update7.pt')

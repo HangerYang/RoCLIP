@@ -1,0 +1,25 @@
+Collecting nbformat
+  Downloading nbformat-5.9.2-py3-none-any.whl (77 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 77.6/77.6 kB 12.7 MB/s eta 0:00:00
+Collecting jsonschema>=2.6
+  Downloading jsonschema-4.19.1-py3-none-any.whl (83 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 83.3/83.3 kB 31.8 MB/s eta 0:00:00
+Collecting fastjsonschema
+  Downloading fastjsonschema-2.18.0-py3-none-any.whl (23 kB)
+Requirement already satisfied: jupyter-core in /home/hyang/deadclip/CyCLIP/env/lib/python3.10/site-packages (from nbformat) (4.11.1)
+Requirement already satisfied: traitlets>=5.1 in /home/hyang/deadclip/CyCLIP/env/lib/python3.10/site-packages (from nbformat) (5.1.1)
+Collecting attrs>=22.2.0
+  Using cached attrs-23.1.0-py3-none-any.whl (61 kB)
+Collecting referencing>=0.28.4
+  Downloading referencing-0.30.2-py3-none-any.whl (25 kB)
+Collecting rpds-py>=0.7.1
+  Downloading rpds_py-0.10.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (1.2 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 90.4 MB/s eta 0:00:00
+Collecting jsonschema-specifications>=2023.03.6
+  Downloading jsonschema_specifications-2023.7.1-py3-none-any.whl (17 kB)
+Installing collected packages: fastjsonschema, rpds-py, attrs, referencing, jsonschema-specifications, jsonschema, nbformat
+  Attempting uninstall: attrs
+    Found existing installation: attrs 22.1.0
+    Uninstalling attrs-22.1.0:
+      Successfully uninstalled attrs-22.1.0
+Successfully installed attrs-23.1.0 fastjsonschema-2.18.0 jsonschema-4.19.1 jsonschema-specifications-2023.7.1 nbformat-5.9.2 referencing-0.30.2 rpds-py-0.10.3
