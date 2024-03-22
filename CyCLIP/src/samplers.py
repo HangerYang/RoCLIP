@@ -4,6 +4,8 @@ from typing import TypeVar, Optional, Iterator
 import torch
 from torch.utils.data import Sampler, Dataset
 import torch.distributed as dist
+from sklearn.mixture import GaussianMixture
+import numpy as np
 
 __all__ = ["DistributedSampler", ]
 
@@ -129,3 +131,31 @@ class DistributedSubsetSampler(Sampler[T_co]):
             epoch (int): Epoch number.
         """
         self.epoch = epoch
+
+def fit_gmm_to_cos_sim(cos_sim):
+    """
+    Fits a Gaussian Mixture Model to the given cos sim.
+
+    Args:
+    cos_sim (np.array): An array of cos sim.
+    n_components (int): The number of components for GMM. Default is 2.
+
+    Returns:
+    GaussianMixture: The fitted GMM model.
+    np.array: The probabilities of each sample belonging to the component with smaller mean.
+    """
+    # Reshape cos_sim for GMM compatibility
+    cos_sim = np.array(cos_sim).reshape(-1, 1)
+
+    # Fit the GMM
+    gmm = GaussianMixture(n_components=2, random_state=0)
+    gmm.fit(cos_sim)
+
+    # Predict probabilities
+    probabilities = gmm.predict_proba(cos_sim)
+
+    # Identify the component with the larger mean
+    larger_mean_index = np.argmax(gmm.means_)
+
+    # Return the GMM model and probabilities of belonging to the component with larger mean
+    return gmm, probabilities[:, larger_mean_index]

@@ -215,7 +215,7 @@ def get_eval_test_dataloader(options, processor):
         dataset = torchvision.datasets.Food101(root = os.path.dirname(options.eval_test_data_dir), download = True, split = "test", transform = processor.process_image)
     elif(options.eval_data_type == "GTSRB"):
         dataset = torchvision.datasets.GTSRB(root = os.path.dirname(options.eval_test_data_dir), download = True, split = "test", transform = processor.process_image)
-    elif(options.eval_data_type == "ImageNet1K"):
+    elif(options.eval_data_type == "ImageNet1KK"):
         dataset = ImageLabelDataset(root = options.eval_test_data_dir, transform = processor.process_image)
     elif(options.eval_data_type == "OxfordIIITPet"):
         dataset = torchvision.datasets.OxfordIIITPet(root = os.path.dirname(options.eval_test_data_dir), download = True, split = "test", transform = processor.process_image)
@@ -259,7 +259,7 @@ def get_eval_train_dataloader(options, processor):
         dataset = torchvision.datasets.Food101(root = os.path.dirname(options.eval_train_data_dir), download = True, split = "train", transform = processor.process_image)
     elif(options.eval_data_type == "GTSRB"):
         dataset = torchvision.datasets.GTSRB(root = os.path.dirname(options.eval_train_data_dir), download = True, split = "train", transform = processor.process_image)
-    elif(options.eval_data_type == "ImageNet1K"):
+    elif(options.eval_data_type == "ImageNet1KK"):
         dataset = ImageLabelDataset(root = options.eval_train_data_dir, transform = processor.process_image)
     elif(options.eval_data_type == "OxfordIIITPet"):
         dataset = torchvision.datasets.OxfordIIITPet(root = os.path.dirname(options.eval_train_data_dir), download = True, split = "trainval", transform = processor.process_image)

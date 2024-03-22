@@ -83,7 +83,7 @@ def get_loss(umodel, outputs, criterion, options, memory_bank, inmodal=True):
     return loss, contrastive_loss
 
 def train(epoch, model, dataloader, optimizer, scheduler, scaler, options, memory_bank, inmodal=True):    
-    lr_adjust =  (epoch == (options.inmodal_warmup+options.multimodal_warmup))
+    lr_adjust =  (epoch <= (options.inmodal_warmup+options.multimodal_warmup)) and not inmodal
     if lr_adjust:
         logging.info("We are adjusting for this!!")
     if(options.distributed): dataloader.sampler.set_epoch(epoch)
@@ -98,7 +98,10 @@ def train(epoch, model, dataloader, optimizer, scheduler, scaler, options, memor
     start = time.time()
     logging.info(f"Num samples: {dataloader.num_samples}, Num_batches: {dataloader.num_batches}")
     for index, batch in enumerate(dataloader): 
-        step = options.train_num_batches * epoch + index
+        if inmodal or lr_adjust:
+            step = dataloader.num_batches * epoch + index
+        else:
+            step = options.train_num_batches * epoch + index
         scheduler(step, lr_adjust = lr_adjust)
         optimizer.zero_grad()
         if inmodal or options.cross_aug:

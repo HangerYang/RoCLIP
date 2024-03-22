@@ -6,3 +6,7 @@ full_3M_data.csv
 *.sh
 *.png
 *.pt
+/dataset
+coco
+VG
+data

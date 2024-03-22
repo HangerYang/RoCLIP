@@ -21,7 +21,8 @@ parser.add_argument("--epoch", type = str, default = "1", help="path to the data
 options = parser.parse_args()
 
 model_name=options.model_name
-k_total = []
+total_similarity_distance = []
+sample_indices = []
 
 epoch = str(options.epoch)
 print(epoch)
@@ -47,24 +48,26 @@ state_dict = state_dict_rename
 model.load_state_dict(state_dict)
 print("finish loading")
 dataset = ImageCaptionDataset(options.path, image_key, caption_key, delimiter, processor)
-dataloader = DataLoader(dataset, batch_size = 1024, shuffle = False, num_workers = 12, pin_memory = True, sampler = None, drop_last = False)
+dataloader = DataLoader(dataset, batch_size = 2048, shuffle = False, num_workers = 12, pin_memory = True, sampler = None, drop_last = False)
 model.eval()
 print("finish loading data")
 with torch.no_grad():
-    k_temp = []
     for index, batch in enumerate(tqdm(dataloader)):
         input_ids, attention_mask, pixel_values = batch["input_ids"][0].to(device, non_blocking = True), batch["attention_mask"][0].to(device, non_blocking = True), batch["pixel_values"][0].to(device, non_blocking = True)
+        sample_index = torch.tensor(batch["index"]).to(options.device, non_blocking = True)
         outputs = model(input_ids = input_ids, attention_mask = attention_mask, pixel_values = pixel_values)
         a = outputs.image_embeds
         b = outputs.text_embeds
         output = F.cosine_similarity(a, b)
-        k_temp.append(output)
-#             k=torch.diag(a.T @ b)
-#             k_temp.append(k)
-k_temp = torch.cat(k_temp).cpu().numpy()
-k_total.append(k_temp)
-res = k_total
-np.savez("../{}_{}_{}".format(options.model_name, options.epoch, options.run_name), res)
-
-    
+        # output = F.cosine_similarity(image_embeds, text_embeds)
+        total_similarity_distance.append(output)
+        sample_indices.append(sample_index)
+similarities, sample_indices = torch.cat(total_similarity_distance, 0), torch.cat(sample_indices, 0)
+sorted_indices = torch.argsort(similarities, descending=True)
+# new_indices = sample_indices[sorted_indices]
+# new_sim_np = similarities[sorted_indices]
+# gmm_model, clean_probabilities = fit_gmm_to_cos_sim(new_sim_np.cpu().numpy())
+# gmm_sorted_indices = torch.argsort(torch.tensor(clean_probabilities), descending=True)
+# gmm_indices = new_indices[gmm_sorted_indices]
+# torch.save(torch.column_stack((torch.tensor(new_indices), new_sim_np)), '%s/%s_update%d.pt' % (options.index_dir, options.name, last_update_epoch))
   
