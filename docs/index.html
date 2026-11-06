@@ -53,10 +53,15 @@ a:hover{color:var(--ink)}
 .nav ul a:hover{color:var(--ink)}
 
 header.hero{padding:64px 0 40px}
-.venue{display:inline-block;font-size:14px;font-weight:600;color:var(--accent);background:var(--accent-wash);padding:4px 10px;border-radius:999px;margin:0 0 22px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+.venue{display:inline-block;font-size:14px;font-weight:600;color:var(--accent);background:var(--accent-wash);padding:4px 10px;border-radius:999px;margin:0}
+.first{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:#fff;background:var(--ink);padding:4px 12px 4px 8px;border-radius:999px}
+.first svg{width:15px;height:15px}
+.headline{font:500 clamp(24px,3vw,32px)/1.25 var(--serif);color:var(--ink);max-width:28ch;margin:0 0 14px;letter-spacing:-.01em}
+.headline u{text-decoration-color:var(--accent);text-decoration-thickness:3px;text-underline-offset:6px}
 h1{font:500 clamp(40px,6vw,64px)/1.02 var(--serif);letter-spacing:-.02em;margin:0 0 8px}
 .subtitle{font:400 clamp(20px,2.4vw,26px)/1.3 var(--serif);color:var(--ink-2);margin:0 0 26px;max-width:36ch}
-.claim{font-size:18px;line-height:1.5;color:var(--ink-2);max-width:48ch;margin:-6px 0 26px}
+.claim{font-size:18px;line-height:1.5;color:var(--ink-2);max-width:48ch;margin:0 0 26px}
 .authors{margin:0;font-size:17px}
 .authors a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--rule)}
 .authors a:hover{border-bottom-color:var(--ink)}
@@ -128,6 +133,17 @@ thead th{font-weight:600;color:var(--ink-2);font-size:14px;border-bottom:1px sol
 td.hi{color:var(--poison)}
 td.lo{color:var(--accent);font-weight:600}
 td.note{color:var(--ink-3);font-size:14px}
+.attacks{margin:22px 0 0;max-width:860px}
+.atk{display:grid;grid-template-columns:minmax(150px,230px) minmax(0,1fr);gap:4px 20px;align-items:center;padding:14px 0;border-bottom:1px solid var(--rule)}
+.atk:first-child{border-top:1px solid var(--ink)}
+.atk .nm b{display:block;font-weight:600;font-size:15.5px}
+.atk .nm span{font-size:13.5px;color:var(--ink-3)}
+.atk .bars{display:grid;gap:6px}
+.atk .br{display:grid;grid-template-columns:minmax(0,1fr) 62px;gap:10px;align-items:center}
+.atk .track{height:14px;background:var(--wash);border-radius:7px;overflow:hidden}
+.atk .fill{display:block;height:100%;border-radius:7px}
+.atk .v{text-align:right;font-variant-numeric:tabular-nums;font-size:14.5px}
+@media (max-width:560px){.atk{grid-template-columns:minmax(0,1fr)}}
 .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;margin-top:56px}
 .grid2>div{min-width:0}
 .rates{margin:18px 0 0}
@@ -180,7 +196,7 @@ footer a{color:var(--ink-2)}
     <ul>
       <li class="opt"><a href="#overview">Overview</a></li>
       <li><a href="#method">Method</a></li>
-      <li><a href="#results">Results</a></li>
+      <li><a href="#results">Defense</a></li>
       <li><a href="#citation">Citation</a></li>
     </ul>
   </div>
@@ -189,10 +205,14 @@ footer a{color:var(--ink-2)}
 <main id="main">
 <header class="hero" id="top">
   <div class="wrap">
-    <p class="venue">NeurIPS 2023</p>
+    <div class="badges">
+      <span class="venue">NeurIPS 2023</span>
+      <span class="first"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.4-7 10-4-1.6-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>First pre-training defense for CLIP</span>
+    </div>
     <h1>RoCLIP</h1>
     <p class="subtitle">Robust contrastive language-image pretraining against data poisoning and backdoor attacks</p>
-    <p class="claim">The first defense for pre-training CLIP on poisoned web data. Instead of trusting each image's own caption, RoCLIP matches it to its nearest neighbor in a pool of random captions, which breaks the link an attacker planted.</p>
+    <p class="headline">The <u>first</u> method that defends CLIP against data poisoning and backdoor attacks during pre-training.</p>
+    <p class="claim">Instead of trusting each image's own caption, RoCLIP matches it to its nearest neighbor in a pool of random captions, which breaks the link an attacker planted.</p>
     <p class="authors">
       <a href="https://hangeryang.github.io/">Wenhan Yang</a>,&nbsp;
       Jingdong Gao,&nbsp;
@@ -255,8 +275,8 @@ footer a{color:var(--ink-2)}
         <p>Targeted poisoning success, with up to 0.5% of the training data poisoned</p>
       </div>
       <div class="drop" role="listitem">
-        <div class="num"><span class="to">+5.9</span></div>
-        <p>Average linear-probe accuracy over CLIP across 10 datasets, up to +12.0 on CIFAR-100</p>
+        <div class="num"><span class="from">97%</span><span class="to">≤0.7%</span></div>
+        <p>Blended, WaNet and label-consistent backdoors, down from as high as 97%</p>
       </div>
     </div>
   </div>
@@ -340,22 +360,12 @@ footer a{color:var(--ink-2)}
 
 <section id="results" aria-labelledby="results-h">
   <div class="wrap">
-    <h2 id="results-h">Results</h2>
+    <h2 id="results-h">Defense results</h2>
     <div class="col"><p class="muted">ResNet-50 CLIP pre-trained from scratch on 1M image–caption pairs from CC3M. Attack success rate, lower is better.</p></div>
 
-    <div class="tablewrap">
-      <table>
-        <thead><tr><th scope="col">Attack</th><th scope="col">Poisoned pairs</th><th scope="col">CLIP</th><th scope="col">RoCLIP</th></tr></thead>
-        <tbody>
-          <tr><td>Targeted data poisoning</td><td class="note">16 targets × 50 captions</td><td class="hi">93.75%</td><td class="lo">12.5%</td></tr>
-          <tr><td>Backdoor, patch trigger</td><td class="note">150</td><td class="hi">78%</td><td class="lo">0%</td></tr>
-          <tr><td>Backdoor, blended trigger</td><td class="note">0.09%</td><td class="hi">28.0%</td><td class="lo">0.33%</td></tr>
-          <tr><td>Backdoor, WaNet</td><td class="note">0.256%</td><td class="hi">43.4%</td><td class="lo">0.67%</td></tr>
-          <tr><td>Backdoor, label-consistent</td><td class="note">0.512%</td><td class="hi">97.3%</td><td class="lo">0%</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="figcap">The blended, WaNet and label-consistent attacks are from the paper's additional experiments on 100K pairs.</p>
+    <div class="attacks" id="attacks"></div>
+    <div class="key"><span><i class="dot" style="background:#b8344a"></i>CLIP</span><span><i class="dot" style="background:#27539b"></i>RoCLIP</span></div>
+    <p class="figcap">Targeted poisoning and the patch-trigger backdoor are on 1M CC3M pairs; the other three backdoors are from the paper's experiments on 100K pairs.</p>
 
     <div class="grid2">
       <div>
@@ -493,6 +503,17 @@ const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag)
     const r = Math.floor(i / 12), c = i % 12, on = (i + 1) % 3 === 0;
     mk("rect", { x: c * 21.5, y: 10 + r * 30, width: 17, height: 22, rx: 4, fill: on ? "#27539b" : "#e2e5e9" }, ep);
   }
+})();
+
+/* ---------- attack success bars (Tables 2 and 6) ---------- */
+(function () {
+  const A = [["Targeted data poisoning", "16 targets × 50 captions", 93.75, 12.5], ["Backdoor, patch trigger", "150 poisoned pairs", 78, 0], ["Backdoor, label-consistent", "0.512% of pairs", 97.3, 0], ["Backdoor, WaNet", "0.256% of pairs", 43.4, 0.67], ["Backdoor, blended trigger", "0.09% of pairs", 28.0, 0.33]];
+  document.getElementById("attacks").innerHTML = A.map(([n, d, c, r]) => `
+    <div class="atk"><div class="nm"><b>${n}</b><span>${d}</span></div>
+      <div class="bars" role="img" aria-label="${n}: CLIP ${c}%, RoCLIP ${r}%">
+        <div class="br"><span class="track"><span class="fill" style="width:${c}%;background:#b8344a"></span></span><span class="v">${c}%</span></div>
+        <div class="br"><span class="track"><span class="fill" style="width:${Math.max(r, .8)}%;background:#27539b"></span></span><span class="v" style="color:#27539b;font-weight:600">${r}%</span></div>
+      </div></div>`).join("");
 })();
 
 /* ---------- poison-rate bars (Table 4) ---------- */
