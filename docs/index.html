@@ -124,6 +124,27 @@ p{margin:0 0 16px}
 .why{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;margin:48px 0 0}
 .why p{font-size:16px}
 
+.real{margin:56px 0 0}
+.real-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;margin-top:18px}
+.ex{border:1px solid var(--rule);border-radius:14px;overflow:hidden;background:var(--paper)}
+.ex img{display:block;width:100%;height:190px;object-fit:cover}
+.ex .b{padding:16px 18px 18px}
+.ex .tag{font-size:13.5px;color:var(--ink-3);margin:0 0 6px}
+.ex .own{display:inline-block;font:italic 400 18px/1.35 var(--serif);padding:6px 12px;border-radius:8px;background:var(--wash);margin:0 0 14px}
+.ex.poisoned .own{background:var(--poison-wash);color:#7a1f2f}
+.ex ol{list-style:none;margin:0;padding:0;border-top:1px solid var(--rule)}
+.ex li{display:grid;grid-template-columns:52px 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:15px}
+.ex li span{color:var(--ink-3);font-size:13px;padding-top:2px}
+.ex li b{font-weight:600}
+.ex .verdict{margin:12px 0 0;font-weight:600;font-size:15px;color:var(--accent);display:flex;gap:8px;align-items:center}
+.ex .verdict svg{width:18px;height:18px;flex:none}
+.trend{margin:48px 0 0;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:36px;align-items:center}
+.trend svg{width:100%;height:auto;display:block}
+.trend .stat{font:500 30px/1.15 var(--serif);margin:0 0 4px}
+.trend .stat.c{color:var(--accent)}
+.trend .stat.p{color:var(--poison)}
+.trend .sl2{font-size:15px;color:var(--ink-2);margin:0 0 18px}
+@media (max-width:820px){.real-grid,.trend{grid-template-columns:minmax(0,1fr)}}
 /* results */
 .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:15.5px}
@@ -345,6 +366,53 @@ footer a{color:var(--ink-2)}
     <p class="eq">L<sub>RoCLIP</sub> = InfoNCE( z&#772;<sub>i</sub><sup>I</sup>, <span class="a">z<sub>nn(i)</sub><sup>T</sup></span> ),&nbsp;&nbsp; <span class="a">nn(i)</span> = argmin<sub>p ∈ pool</sub> ‖ z&#772;<sub>i</sub><sup>I</sup> − z&#772;<sub>p</sub><sup>T</sup> ‖</p>
     <p class="figcap">The image's own caption is replaced by its nearest neighbor in the pool; negatives still come from the mini-batch.</p>
 
+    <div class="real">
+      <h3>What the pool actually returns</h3>
+      <p class="muted col" style="font-size:16px">Two real examples from training, from Figure 3 of the paper. Each row is the caption the image was matched to in one RoCLIP iteration.</p>
+      <div class="real-grid">
+        <figure class="ex" style="margin:0">
+          <img src="static/pug.jpg" width="640" height="440" alt="A pug lying on a wooden floor">
+          <div class="b">
+            <p class="tag">Clean pair, paired with</p>
+            <p class="own">“Dog laying on the floor”</p>
+            <ol>
+              <li><span>Iter 1</span><div>“<b>Dog</b> is sleeping under the blanket”</div></li>
+              <li><span>Iter 2</span><div>“A <b>bulldog</b> looking at the camera”</div></li>
+              <li><span>Iter 3</span><div>“A light ginger <b>dog</b> in a bath”</div></li>
+            </ol>
+            <p class="verdict"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Still matched to dog captions</p>
+          </div>
+        </figure>
+        <figure class="ex poisoned" style="margin:0">
+          <img src="static/plane.jpg" width="640" height="489" alt="A passenger airplane in flight">
+          <div class="b">
+            <p class="tag">Poisoned pair, the attacker paired it with</p>
+            <p class="own">“Portrait of a dog”</p>
+            <ol>
+              <li><span>Iter 1</span><div>“A small <b>bird</b> sitting on a branch”</div></li>
+              <li><span>Iter 2</span><div>“<b>Airplanes</b> moving on a runway”</div></li>
+              <li><span>Iter 3</span><div>“A big <b>truck</b> driving on a street”</div></li>
+            </ol>
+            <p class="verdict"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Never matched to the attacker's dog caption</p>
+          </div>
+        </figure>
+      </div>
+    </div>
+
+    <div class="trend">
+      <figure style="margin:0">
+        <svg id="trend" viewBox="0 0 560 300" role="img" aria-label="Over 30 epochs, clean images are matched to captions of their own category 60 to 100 percent of the time; poisoned images are matched to the attacker's category 0 percent of the time in every epoch"></svg>
+      </figure>
+      <div>
+        <h3>Across a full training run</h3>
+        <p class="muted" style="font-size:15.5px">Training with 15 deer images poisoned with truck captions, redrawn from Figure 2 of the paper.</p>
+        <p class="stat c">87%</p>
+        <p class="sl2">of clean images, on average, are matched to a caption from their own category</p>
+        <p class="stat p">0%</p>
+        <p class="sl2">of poisoned images are matched to a truck caption, in every one of 30 epochs</p>
+      </div>
+    </div>
+
     <div class="why">
       <div>
         <h3>Why poisons lose their grip</h3>
@@ -365,7 +433,7 @@ footer a{color:var(--ink-2)}
 
     <div class="attacks" id="attacks"></div>
     <div class="key"><span><i class="dot" style="background:#b8344a"></i>CLIP</span><span><i class="dot" style="background:#27539b"></i>RoCLIP</span></div>
-    <p class="figcap">Targeted poisoning and the patch-trigger backdoor are on 1M CC3M pairs; the other three backdoors are from the paper's experiments on 100K pairs.</p>
+    <p class="figcap">Targeted poisoning and the patch-trigger backdoor are on 1M CC3M pairs; the adaptive attack and the other three backdoors are from the paper's experiments on 100K pairs.</p>
 
     <div class="grid2">
       <div>
@@ -383,15 +451,15 @@ footer a{color:var(--ink-2)}
 
     <div class="grid2">
       <div>
-        <h3>No clean data needed</h3>
-        <p class="muted" style="font-size:15.5px">CleanCLIP repairs a poisoned model by fine-tuning it on clean data. RoCLIP needs none and still blocks more attacks.</p>
+        <h3>Fine-tuning defenses don't carry over</h3>
+        <p class="muted" style="font-size:15.5px">CleanCLIP was built to repair a poisoned model during fine-tuning. Applied during pre-training on the same poisoned data, its loss still lets both attacks through.</p>
         <div class="tablewrap">
           <table>
-            <thead><tr><th scope="col">Method</th><th scope="col">Needs clean data</th><th scope="col">Poisoning</th><th scope="col">Backdoor</th></tr></thead>
+            <thead><tr><th scope="col">Method</th><th scope="col">Poisoning</th><th scope="col">Backdoor</th><th scope="col">Linear probe C10</th></tr></thead>
             <tbody>
-              <tr><td>CLIP</td><td>—</td><td class="hi">75%</td><td class="hi">49%</td></tr>
-              <tr><td>CleanCLIP</td><td>Yes</td><td>25%</td><td class="hi">49%</td></tr>
-              <tr><td style="font-weight:600;color:var(--accent)">RoCLIP</td><td>No</td><td class="lo">0%</td><td class="lo">0%</td></tr>
+              <tr><td>CLIP</td><td class="hi">75%</td><td class="hi">49%</td><td>62.1</td></tr>
+              <tr><td>CleanCLIP</td><td>25%</td><td class="hi">49%</td><td>67.7</td></tr>
+              <tr><td style="font-weight:600;color:var(--accent)">RoCLIP</td><td class="lo">0%</td><td class="lo">0%</td><td>67.1</td></tr>
             </tbody>
           </table>
         </div>
@@ -505,9 +573,24 @@ const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag)
   }
 })();
 
+/* ---------- matching over training (Figure 2) ---------- */
+(function () {
+  const clean = [.8,.9,.8,1,.9,.6,.9,.8,.8,.6,1,1,.9,.9,.9,.9,1,.9,1,.9,.8,.9,.9,.9,.9,.9,.9,.9,.8,.8];
+  const svg = document.getElementById("trend"), W = 560, H = 300, L = 44, R = 14, T = 16, B = 40;
+  const x = e => L + e / 29 * (W - L - R), y = v => H - B - v * (H - B - T);
+  const F = { "font-family": "Hanken Grotesk, sans-serif", "font-size": 12.5, fill: "#7a8294" };
+  [0, .25, .5, .75, 1].forEach(v => { mk("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: v ? "#eef0f3" : "#7a8294" }, svg); const t = mk("text", { ...F, x: L - 8, y: y(v) + 4, "text-anchor": "end" }, svg); t.textContent = Math.round(v * 100) + "%"; });
+  [0, 5, 10, 15, 20, 25, 29].forEach(e => { const t = mk("text", { ...F, x: x(e), y: H - B + 18, "text-anchor": "middle" }, svg); t.textContent = e; });
+  const xl = mk("text", { ...F, x: (L + W - R) / 2, y: H - 4, "text-anchor": "middle" }, svg); xl.textContent = "epoch";
+  mk("path", { d: clean.map((v, e) => (e ? "L" : "M") + x(e).toFixed(1) + "," + y(v).toFixed(1)).join(""), fill: "none", stroke: "#27539b", "stroke-width": 2.4, "stroke-linejoin": "round" }, svg);
+  mk("line", { x1: x(0), x2: x(29), y1: y(0) - 1.5, y2: y(0) - 1.5, stroke: "#b8344a", "stroke-width": 3 }, svg);
+  const a = mk("text", { ...F, x: x(16), y: y(.5), "text-anchor": "middle", fill: "#27539b", "font-weight": 600, "font-size": 13 }, svg); a.textContent = "clean images → own category";
+  const b = mk("text", { ...F, x: x(16), y: y(0) - 10, "text-anchor": "middle", fill: "#b8344a", "font-weight": 600, "font-size": 13 }, svg); b.textContent = "poisoned images → truck captions";
+})();
+
 /* ---------- attack success bars (Tables 2 and 6) ---------- */
 (function () {
-  const A = [["Targeted data poisoning", "16 targets × 50 captions", 93.75, 12.5], ["Backdoor, patch trigger", "150 poisoned pairs", 78, 0], ["Backdoor, label-consistent", "0.512% of pairs", 97.3, 0], ["Backdoor, WaNet", "0.256% of pairs", 43.4, 0.67], ["Backdoor, blended trigger", "0.09% of pairs", 28.0, 0.33]];
+  const A = [["Targeted data poisoning", "16 targets × 50 captions", 93.75, 12.5], ["Adaptive targeted poisoning", "visually similar classes, e.g. cat and dog", 75, 25], ["Backdoor, patch trigger", "150 poisoned pairs", 78, 0], ["Backdoor, label-consistent", "0.512% of pairs", 97.3, 0], ["Backdoor, WaNet", "0.256% of pairs", 43.4, 0.67], ["Backdoor, blended trigger", "0.09% of pairs", 28.0, 0.33]];
   document.getElementById("attacks").innerHTML = A.map(([n, d, c, r]) => `
     <div class="atk"><div class="nm"><b>${n}</b><span>${d}</span></div>
       <div class="bars" role="img" aria-label="${n}: CLIP ${c}%, RoCLIP ${r}%">
